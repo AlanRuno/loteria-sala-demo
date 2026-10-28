@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/png" href="../../../favicon.png">
+<title>Terminal del jugador · simulación</title>
+<link href="https://fonts.googleapis.com/css2?family=Yeseva+One&family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --felt:#123F2B; --felt-deep:#0C2E1F; --felt-dark:#082016; --felt-light:#1C5A3D; --gold:#C9A24B; --gold-soft:#E6CE85; --gold-deep:#9C7A30;
+         --cream:#F6EFDD; --ink:#221A0E; --text:#ECE6D2; --mut:#A9BCA3; --red:#B23A2E; --green:#3E8C63; --line:rgba(201,162,75,.45); }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ width:100%; height:100%; overflow:hidden; background:#0A2618; }
+  body{ width:1280px; height:800px; overflow:hidden; position:absolute; left:0; top:0; transform-origin:0 0;
+    font-family:'IBM Plex Sans',sans-serif; color:var(--text); user-select:none; -webkit-user-select:none; touch-action:none;
+    background: radial-gradient(1100px 600px at 50% -10%, #2C7A55, transparent 62%), linear-gradient(180deg,#14492F,#0C2E1F 70%,#0A2618);
+    display:grid; grid-template-rows:76px 56px 1fr 36px; }
+  body::before{ content:""; position:absolute; inset:-25%; pointer-events:none; z-index:0; background:radial-gradient(560px 400px at 50% 45%, rgba(255,255,255,.07), transparent 70%); animation:spot 16s ease-in-out infinite alternate; }
+  @keyframes spot{ 0%{ transform:translate(-9%,-6%) } 100%{ transform:translate(9%,7%) } }
+  body::after{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.45; mix-blend-mode:soft-light; z-index:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  img{ -webkit-user-drag:none; pointer-events:none; }
+  svg.i{ width:1em; height:1em; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; flex:none; vertical-align:-.15em; overflow:visible; }
+  .display{ font-family:'Yeseva One',serif; font-weight:400; }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold-soft); font-weight:600; }
+  /* panel con ribete de costura */
+  .panel{ position:relative; border:1px solid var(--line); border-radius:16px; background:linear-gradient(180deg,rgba(28,90,61,.55),rgba(12,46,31,.78)); box-shadow:0 14px 30px -16px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.06); }
+  .panel::before{ content:""; position:absolute; inset:5px; border:1px dashed rgba(230,206,133,.32); border-radius:11px; pointer-events:none; }
+
+  /* ── encabezado ── */
+  header{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 16px; background:linear-gradient(180deg,rgba(8,32,22,.78),rgba(8,32,22,.5)); border-bottom:1px solid rgba(201,162,75,.4); position:relative; z-index:2; }
+  .term{ display:flex; align-items:center; gap:12px; flex:none; }
+  .term .num{ font-family:'IBM Plex Mono',monospace; font-size:21px; color:var(--gold-soft); border:2px solid var(--gold); border-radius:10px; padding:6px 12px; letter-spacing:.08em; background:rgba(12,46,31,.6); }
+  .term .brand{ font-size:19px; color:var(--cream); line-height:1; }
+  .term .brand small{ display:block; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.2em; color:var(--mut); margin-top:4px; }
+  .jack{ flex:none; width:350px; height:72px; padding:10px 16px 9px; text-align:center; cursor:pointer; border-color:var(--gold); background:linear-gradient(180deg,rgba(52,38,10,.9),rgba(30,22,6,.95)); transition:transform .12s; overflow:hidden; }
+  .jack::before{ border-color:rgba(230,206,133,.22); inset:4px; }
+  .jack::after{ content:""; position:absolute; top:-40%; bottom:-40%; width:30%; left:-50%; background:linear-gradient(100deg,transparent,rgba(255,243,196,.16),transparent); transform:skewX(-20deg); animation:sheen 5s ease-in-out infinite; pointer-events:none; }
+  .jack:active{ transform:scale(.98); }
+  .bulbs{ position:absolute; left:10px; right:10px; display:flex; justify-content:space-between; pointer-events:none; }
+  .bulbs.top{ top:2px; } .bulbs.bot{ bottom:2px; }
+  .bulbs i{ width:5px; height:5px; border-radius:50%; background:#5E4A1C; animation:bulb 1.4s linear infinite; animation-delay:calc(var(--i) * -.1s); }
+  @keyframes bulb{ 0%,70%,100%{ background:#5E4A1C; box-shadow:none } 12%,40%{ background:#FFF3C4; box-shadow:0 0 7px 2px rgba(255,243,196,.75) } }
+  .jack .jk{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.24em; color:var(--gold-soft); font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px; margin-top:0; line-height:1; }
+  .jack .ja{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:24px; line-height:1; color:#FFF3C4; text-shadow:0 0 16px rgba(230,206,133,.5); margin:3px 0 2px; transition:text-shadow .3s; }
+  .jack .ja.rolling{ text-shadow:0 0 26px rgba(255,243,196,1); }
+  .jack .jr{ font-size:11px; color:var(--gold-soft); height:12px; line-height:12px; overflow:hidden; white-space:nowrap; } .jack .jr span{ display:block; animation:jrin .55s cubic-bezier(.2,.9,.3,1) both; }
+  @keyframes jrin{ from{ transform:translateY(110%); opacity:0 } }
+  .hright{ display:flex; align-items:center; gap:10px; flex:none; }
+  .player{ display:flex; align-items:center; gap:10px; padding:5px 14px 5px 6px; border-radius:40px; cursor:pointer; transition:transform .12s; }
+  .player::before{ border-radius:34px; }
+  .player:active{ transform:scale(.98); }
+  .player .av{ width:40px; height:40px; border-radius:50%; background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:var(--felt-dark); font-family:'Yeseva One',serif; display:flex; align-items:center; justify-content:center; font-size:19px; box-shadow:0 4px 10px -4px rgba(0,0,0,.6); }
+  .player .n{ font-weight:600; font-size:15px; line-height:1.1; } .player .c{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--mut); letter-spacing:.08em; margin-top:3px; }
+  .player .bal{ text-align:right; margin-left:6px; padding-left:14px; border-left:1px solid rgba(201,162,75,.3); }
+  .player .bal .big{ font-family:'IBM Plex Mono',monospace; font-size:23px; color:var(--cream); font-weight:600; line-height:1; transition:color .3s; }
+  .player .bal .big.up{ color:var(--gold-soft); } .player .bal .big.down{ color:#F0B5AC; }
+  .player .bal .sm{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--mut); margin-top:4px; letter-spacing:.14em; }
+  .ico{ width:44px; height:44px; border-radius:12px; border:1px solid rgba(201,162,75,.5); display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--gold-soft); background:rgba(12,46,31,.6); cursor:pointer; transition:transform .12s, background .2s, color .2s; }
+  .ico:active{ transform:scale(.9); background:rgba(201,162,75,.2); }
+  .ico.off{ color:#F0B5AC; }
+
+  /* ── barra de estado ── */
+  .status{ display:flex; align-items:center; gap:16px; padding:0 20px; background:rgba(8,32,22,.35); border-bottom:1px solid rgba(201,162,75,.25); position:relative; z-index:2; }
+  .pill{ font-family:'IBM Plex Mono',monospace; font-size:12.5px; letter-spacing:.14em; padding:7px 14px 7px 12px; border-radius:30px; font-weight:600; white-space:nowrap; display:flex; align-items:center; gap:8px; cursor:pointer; transition:background .4s, color .4s; }
+  .pill::before{ content:""; width:8px; height:8px; border-radius:50%; background:currentColor; animation:blink 1.2s ease-in-out infinite; }
+  @keyframes blink{ 50%{ opacity:.2 } }
+  .pill.open{ background:#2D6A48; color:#DFF3E6; } .pill.live{ background:#6B2B22; color:#FFD9D2; } .pill.res{ background:#5A4A1E; color:var(--gold-soft); }
+  .msg{ font-size:18px; color:var(--cream); display:flex; align-items:center; gap:10px; flex:1; white-space:nowrap; overflow:hidden; } .msg b{ color:var(--gold-soft); }
+  .msg img{ width:32px; border-radius:3px; background:#fff; padding:2px; box-shadow:0 4px 10px rgba(0,0,0,.45); }
+  .bar{ flex:1; height:10px; background:rgba(255,255,255,.08); border-radius:10px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.5); }
+  .bar i{ display:block; height:100%; width:0; background:linear-gradient(90deg,var(--gold-deep),var(--gold-soft),var(--gold-deep)); background-size:200% 100%; animation:barsheen 1.6s linear infinite; transition:width .2s linear; }
+  @keyframes barsheen{ to{ background-position:-200% 0 } }
+  .t{ font-family:'IBM Plex Mono',monospace; font-size:27px; color:var(--cream); font-weight:600; min-width:88px; text-align:right; cursor:pointer; transition:color .3s; }
+  .t.urgent{ color:#FFB3A7; animation:urgent .5s ease-in-out infinite alternate; }
+  @keyframes urgent{ to{ transform:scale(1.1); text-shadow:0 0 18px rgba(255,120,100,.9) } }
+
+  main{ display:grid; grid-template-columns:minmax(0,1fr) 300px; grid-template-rows:minmax(0,1fr); position:relative; overflow:hidden; z-index:1; }
+  #countOv{ position:absolute; left:0; top:0; right:300px; bottom:0; pointer-events:none; z-index:4; display:none; align-items:center; justify-content:center; flex-direction:column; background:radial-gradient(500px 400px at 50% 50%, rgba(8,32,22,.55), transparent 70%); }
+  #countOv.on{ display:flex; }
+  #countOv .w{ font-family:'Yeseva One',serif; font-size:50px; color:var(--cream); text-shadow:0 6px 24px rgba(0,0,0,.6); animation:countpop .6s cubic-bezier(.2,1.2,.3,1) both; }
+  #countOv .n{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:250px; line-height:1; color:#FFF3C4; text-shadow:0 0 70px rgba(230,206,133,.7), 0 10px 0 rgba(90,63,18,.6); animation:countpop .8s cubic-bezier(.2,1.3,.3,1) both; }
+  #countOv .w2{ font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.3em; text-transform:uppercase; color:var(--gold-soft); }
+  @keyframes countpop{ 0%{ transform:scale(.3); opacity:0 } 60%{ opacity:1 } 100%{ transform:none; opacity:1 } }
+
+  /* ── arena: las tablas apostadas / zona para soltar ── */
+  .arena{ position:relative; min-height:0; padding:16px 22px; display:flex; flex-wrap:wrap; gap:18px; align-items:flex-start; align-content:flex-start; justify-content:center; transition:background .2s; }
+  .arena.drop{ background:rgba(201,162,75,.10); box-shadow:inset 0 0 0 4px var(--gold-soft); }
+  .arena.drop .empty, .arena.drop .slot{ border-color:var(--gold-soft); color:var(--cream); background:rgba(201,162,75,.12); }
+  .empty{ align-self:stretch; flex:1; border:3px dashed rgba(201,162,75,.45); border-radius:22px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; color:var(--mut); padding:30px; transition:all .2s; }
+  .empty .ic{ height:74px; display:flex; align-items:center; justify-content:center; filter:drop-shadow(0 10px 14px rgba(0,0,0,.55)); animation:floaty 3.2s ease-in-out infinite; }
+  .empty .ic img{ height:74px; } .empty .ic svg{ width:70px; height:70px; color:var(--gold-soft); }
+  .empty .big{ font-family:'Yeseva One',serif; font-size:34px; color:var(--cream); line-height:1.15; }
+  .empty .sub{ font-size:16px; max-width:540px; line-height:1.45; } .empty .sub b{ color:var(--gold-soft); }
+  .empty .arrow{ color:var(--gold-soft); animation:nudge 1.2s ease-in-out infinite; display:flex; } .empty .arrow svg{ width:44px; height:44px; }
+  @keyframes nudge{ 50%{ transform:translateY(12px) } }
+  .slot{ flex:none; width:130px; align-self:stretch; border:3px dashed rgba(201,162,75,.4); border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:var(--mut); font-size:12.5px; line-height:1.4; padding:10px; gap:8px; transition:all .2s; }
+  .slot .pl{ font-size:40px; color:var(--gold-soft); line-height:1; }
+  .tabla{ flex:none; position:relative; }
+  .tabla.enter{ animation:dealin .6s cubic-bezier(.2,1.3,.4,1) backwards; }
+  @keyframes dealin{ 0%{ opacity:0; transform:translateY(46px) scale(.82) rotate(-4deg) } 100%{ opacity:1; transform:none } }
+  .arena.compact .tabla .ft{ display:none; } .arena.compact .tabla .hd{ margin-bottom:4px; } .arena.compact .tabla .hd .id b{ font-size:13px; }
+  .tabla .hd{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px; }
+  .tabla .hd .id{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--mut); letter-spacing:.08em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tabla .hd .id b{ color:var(--cream); font-family:'Yeseva One',serif; font-weight:400; font-size:15px; letter-spacing:0; margin-right:6px; }
+  .st{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.12em; padding:4px 9px; border-radius:20px; font-weight:600; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; transition:transform .12s; }
+  .st.ok{ background:#2D6A48; color:#DFF3E6; } .st.win{ background:var(--gold); color:var(--felt-dark); } .st.x{ background:rgba(8,32,22,.5); border:1px solid rgba(201,162,75,.5); color:var(--gold-soft); cursor:pointer; } .st.x:active{ transform:scale(.94); }
+  .st.au{ background:var(--gold); color:var(--felt-dark); } .st.q{ background:#5A4A1E; color:var(--gold-soft); }
+  /* tabla con fondo de la colección: las 16 cartas juntas, en un bloque centrado (sin desplazamientos) */
+  .board{ position:relative; aspect-ratio:3/4; background:var(--bg) center/100% 100% no-repeat; border-radius:10px; box-shadow:0 18px 44px -18px rgba(0,0,0,.7); }
+  .board.full{ box-shadow:0 0 0 4px var(--gold-soft), 0 0 50px rgba(230,206,133,.8); }
+  .grid{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); height:88%; aspect-ratio:1656/2620; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr); gap:0; box-shadow:0 6px 16px rgba(0,0,0,.35); border-radius:4px; }
+  .cell{ position:relative; min-width:0; min-height:0; cursor:pointer; }
+  .pic{ position:absolute; inset:0; display:block; transition:transform .25s; }
+  .pic img{ display:block; width:100%; height:100%; }
+  .grid .cell:nth-child(1) img{ border-top-left-radius:4px } .grid .cell:nth-child(4) img{ border-top-right-radius:4px } .grid .cell:nth-child(13) img{ border-bottom-left-radius:4px } .grid .cell:nth-child(16) img{ border-bottom-right-radius:4px }
+  .pic img{ transition:filter .45s; }
+  .cell.m .pic img{ filter:brightness(.5) saturate(.7); }
+  .bean{ position:absolute; left:50%; top:50%; width:68%; height:68%; transform:translate(-50%,-50%) rotate(-16deg); background:center/contain no-repeat; filter:drop-shadow(0 0 1px #FFF6DC) drop-shadow(0 0 1px #FFF6DC) drop-shadow(0 6px 8px rgba(0,0,0,.75)); z-index:2; }
+  .bean.new{ animation:drop .55s cubic-bezier(.2,1.4,.5,1); }
+  @keyframes drop{ 0%{ transform:translate(-50%,-190%) scale(1.7) rotate(-30deg); opacity:0 } 70%{ opacity:1 } 100%{ transform:translate(-50%,-50%) rotate(-16deg); opacity:1 } }
+  .pic.ring::after{ content:""; position:absolute; left:50%; top:50%; width:70%; height:70%; border:3px solid rgba(255,246,220,.9); border-radius:50%; transform:translate(-50%,-50%) scale(.3); animation:ring .7s ease-out .25s forwards; pointer-events:none; opacity:0; z-index:3; }
+  @keyframes ring{ 0%{ opacity:.95; transform:translate(-50%,-50%) scale(.35) } 100%{ opacity:0; transform:translate(-50%,-50%) scale(1.7) } }
+  .cell.hint .pic{ outline:3px solid var(--gold-soft); outline-offset:-3px; animation:hintpulse 1s ease-in-out infinite; z-index:1; }
+  @keyframes hintpulse{ 0%,100%{ transform:scale(1); outline-color:var(--gold-soft); filter:none } 50%{ transform:scale(1.06); outline-color:#FFF6CC; filter:brightness(1.12) drop-shadow(0 0 10px rgba(230,206,133,.8)) } }
+  .cell.no .pic{ animation:shake .35s; outline:3px solid var(--red); outline-offset:-3px; }
+  @keyframes shake{ 0%,100%{ transform:none } 25%{ transform:translateX(-5px) } 75%{ transform:translateX(5px) } }
+  .tabla .ft{ margin-top:6px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--mut); display:flex; justify-content:space-between; align-items:center; gap:6px; } .tabla .ft b{ color:var(--cream); font-weight:600; }
+  .tabla .ft .fol{ cursor:pointer; border-bottom:1px dashed rgba(201,162,75,.4); }
+  .toast{ position:absolute; left:50%; top:14px; transform:translateX(-50%) translateY(-16px) scale(.96); background:rgba(8,32,22,.96); border:1px solid var(--gold); color:var(--cream); padding:12px 22px; border-radius:40px; font-size:16px; opacity:0; transition:all .3s cubic-bezier(.2,1.2,.4,1); pointer-events:none; z-index:20; white-space:nowrap; box-shadow:0 14px 30px -10px rgba(0,0,0,.7); display:flex; align-items:center; gap:10px; }
+  .toast.on{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+  .toast.bad{ border-color:var(--red); }
+
+  /* ── columna derecha ── */
+  .side{ background:rgba(8,32,22,.55); border-left:1px solid rgba(201,162,75,.3); padding:12px 16px; display:flex; flex-direction:column; gap:8px; min-height:0; overflow:hidden; }
+  .sdyn{ display:contents; }
+  /* premios de la partida: grande (tabla llena) y chico (4 figuras), siempre visibles */
+  .prizes{ padding:8px 12px 9px; display:flex; flex-direction:column; gap:5px; cursor:pointer; flex:none; transition:transform .12s; }
+  .prizes:active{ transform:scale(.985); }
+  .prizes .ph{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--mut); display:flex; align-items:center; gap:6px; } .prizes .ph .tap{ margin-left:auto; font-size:13px; }
+  .prow{ display:flex; align-items:center; gap:9px; padding:3px 8px; border-radius:12px; background:rgba(8,32,22,.45); border:1px solid rgba(201,162,75,.25); transition:background .4s, border-color .4s, opacity .4s, box-shadow .4s; }
+  .prow .pot{ width:30px; height:30px; border-radius:50%; background:radial-gradient(circle at 40% 30%, rgba(230,206,133,.35), rgba(201,162,75,.08)); color:var(--gold-soft); display:flex; align-items:center; justify-content:center; flex:none; } .prow .pot svg{ width:22px; height:22px; }
+  .prow .pl{ flex:1; min-width:0; line-height:1.1; } .prow .pl b{ font-family:'Yeseva One',serif; font-weight:400; font-size:15px; color:var(--cream); display:block; } .prow .pl small{ display:block; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.06em; color:var(--mut); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .prow .pv{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:19px; color:var(--gold-soft); }
+  .prow.done{ background:rgba(107,43,34,.35); border-color:rgba(240,181,172,.55); } .prow.done .pv{ color:#FFB3A7; font-size:16px; } .prow.done .pl small{ color:#FFB3A7; } .prow.done .pot{ color:#F0B5AC; background:rgba(107,43,34,.5); }
+  .prow.mine{ background:rgba(201,162,75,.2); border-color:var(--gold-soft); box-shadow:0 0 18px rgba(230,206,133,.35); opacity:1; } .prow.mine .pv{ color:#FFF3C4; font-size:25px; animation:amtpulse 1.1s ease-in-out infinite alternate; text-shadow:0 0 14px rgba(255,243,196,.7); } .prow.mine .pl small{ color:var(--gold-soft); }
+  .pot.hit{ animation:potbounce .45s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes potbounce{ 0%{ transform:scale(1) } 40%{ transform:scale(1.3) rotate(-8deg) } 100%{ transform:scale(1) } }
+  .coin{ position:absolute; left:0; top:0; width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #FFF3C4, #E6CE85 38%, #C9A24B 70%, #9C7A30); box-shadow:0 2px 6px rgba(0,0,0,.5), inset 0 0 0 1.5px rgba(156,122,48,.8); color:#5A3F12; font:600 11px/18px 'IBM Plex Mono',monospace; text-align:center; z-index:70; pointer-events:none; will-change:transform; }
+  .sbanner{ position:absolute; left:50%; top:14px; transform:translate(-50%,-40px) scale(.96); width:min(760px, 92%); display:flex; align-items:center; gap:14px; padding:12px 22px; border-radius:18px; background:linear-gradient(90deg,#1C5A3D,#0C2E1F); border:2px solid var(--gold); box-shadow:0 20px 50px -14px rgba(0,0,0,.85); opacity:0; pointer-events:none; z-index:22; transition:transform .4s cubic-bezier(.2,1.2,.4,1), opacity .35s; color:var(--cream); }
+  .sbanner.on{ opacity:1; transform:translate(-50%,0) scale(1); }
+  .sbanner .ic{ width:46px; height:46px; border-radius:50%; background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:var(--felt-dark); display:flex; align-items:center; justify-content:center; flex:none; } .sbanner .ic svg{ width:26px; height:26px; }
+  .sbanner .tx{ flex:1; min-width:0; } .sbanner .tx b{ display:block; font-family:'Yeseva One',serif; font-weight:400; font-size:24px; line-height:1.1; color:var(--gold-soft); } .sbanner .tx span{ display:block; font-size:15px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sbanner .am{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:32px; color:#FFF3C4; text-shadow:0 0 14px rgba(230,206,133,.5); }
+  /* tuyo: dorado, con el monto grande y latiendo */
+  .sbanner.mine{ padding:16px 26px; gap:18px; border:3px solid var(--gold-soft); box-shadow:0 0 44px rgba(230,206,133,.65), 0 20px 50px -14px rgba(0,0,0,.85); }
+  .sbanner.mine .ic{ width:58px; height:58px; } .sbanner.mine .ic svg{ width:32px; height:32px; }
+  .sbanner.mine .tx b{ font-size:30px; } .sbanner.mine .tx span{ font-size:16px; font-weight:600; color:var(--cream); }
+  .sbanner.mine .am{ font-size:60px; line-height:1; background:linear-gradient(180deg,#FFF6CC 0%,#E6CE85 45%,#C9A24B 75%,#9C7A30 100%); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:none; filter:drop-shadow(0 3px 0 rgba(90,63,18,.9)) drop-shadow(0 0 18px rgba(255,243,196,.75)); animation:amtpop .9s cubic-bezier(.2,1.4,.4,1) both, amtpulse 1.1s ease-in-out .9s infinite alternate; }
+  @keyframes amtpop{ 0%{ transform:scale(.3) rotate(-8deg); opacity:0 } 60%{ transform:scale(1.2) rotate(2deg); opacity:1 } 100%{ transform:none; opacity:1 } }
+  @keyframes amtpulse{ from{ transform:scale(1) } to{ transform:scale(1.08) } }
+  /* de otro jugador: rojo, sin sonido ni monedas, y lo dice con todas sus letras */
+  .sbanner.other{ background:linear-gradient(90deg,#6B2B22,#3F1812); border-color:#F0B5AC; color:#FFE1DB; box-shadow:0 20px 50px -14px rgba(0,0,0,.85); }
+  .sbanner.other .ic{ background:#8A3A2E; color:#FFE1DB; } .sbanner.other .tx b{ color:#FFB3A7; font-size:22px; } .sbanner.other .tx span{ color:#FFD9D2; } .sbanner.other .am{ font-size:24px; color:#FFD9D2; text-shadow:none; opacity:.9; }
+  .player .bal .big.up{ animation:balpop .7s cubic-bezier(.2,1.4,.4,1); } @keyframes balpop{ 0%{ transform:scale(1) } 40%{ transform:scale(1.22) } 100%{ transform:scale(1) } }
+  .cell.pat .pic{ outline:4px solid #7FD6A4; outline-offset:-4px; box-shadow:0 0 18px rgba(127,214,164,.9); z-index:2; }
+  .sheet .pr2{ display:flex; gap:28px; margin-bottom:4px; } .sheet .pr2 .k{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--mut); } .sheet .big.sm{ font-size:34px; color:var(--gold-soft); }
+  .sheet .pats{ display:flex; gap:16px; margin:6px 0 4px; } .sheet .pat{ display:flex; flex-direction:column; align-items:center; gap:4px; font-size:13px; color:var(--cream); }
+  .sheet .pg{ display:grid; grid-template-columns:repeat(4,14px); gap:2px; padding:4px; background:var(--cream); border-radius:4px; } .sheet .pg i{ display:block; height:16px; background:#DDD0AE; border-radius:2px; } .sheet .pg i.on{ background:var(--gold); box-shadow:inset 0 0 0 1px var(--gold-deep); }
+  .ov .t.semi{ font-size:60px; color:var(--gold-soft); text-shadow:0 0 30px rgba(230,206,133,.5); }
+  .now{ padding:10px 14px; display:flex; flex-direction:column; gap:5px; align-items:center; text-align:center; min-height:0; justify-content:center; cursor:pointer; perspective:700px; transition:transform .15s; }
+  .now:active{ transform:scale(.985); }
+  .now .k{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--mut); display:flex; align-items:center; gap:6px; }
+  .now .v{ font-family:'IBM Plex Mono',monospace; font-size:27px; color:var(--gold-soft); font-weight:600; line-height:1; }
+  .now .v2{ font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--gold-soft); font-weight:600; }
+  .now .row{ display:flex; justify-content:space-between; width:100%; align-items:baseline; }
+  .now img.card{ width:80px; border-radius:6px; background:#fff; padding:4px; box-shadow:0 12px 26px -10px rgba(0,0,0,.75); }
+  .flipin{ animation:flipin .65s cubic-bezier(.2,.9,.3,1) both; }
+  @keyframes flipin{ 0%{ transform:perspective(600px) rotateY(-95deg) scale(.8); opacity:0 } 100%{ transform:none; opacity:1 } }
+  .now .nm{ font-family:'Yeseva One',serif; font-size:23px; color:var(--cream); line-height:1.1; } .now .nm small{ display:block; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--mut); letter-spacing:.14em; margin-top:4px; }
+  .now .tap{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.14em; color:var(--mut); margin-top:2px; display:flex; align-items:center; gap:5px; }
+  .now .troph{ color:var(--gold-soft); } .now .troph svg{ width:44px; height:44px; }
+  .btn{ position:relative; overflow:hidden; width:100%; min-height:58px; border-radius:14px; border:none; font-family:'IBM Plex Sans',sans-serif; font-weight:700; font-size:17px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; text-align:center; padding:0 14px; color:var(--text); transition:transform .12s, box-shadow .25s, filter .25s; }
+  .btn:active{ transform:scale(.96); filter:brightness(1.08); }
+  .btn.gold{ background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:#3A2A0C; box-shadow:0 1px 0 rgba(255,255,255,.55) inset, 0 10px 24px -10px rgba(0,0,0,.6); }
+  .btn.gold::after{ content:""; position:absolute; top:-50%; bottom:-50%; width:36%; left:-60%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent); transform:skewX(-20deg); animation:sheen 3.8s ease-in-out infinite; pointer-events:none; }
+  @keyframes sheen{ 0%{ left:-60% } 38%{ left:140% } 100%{ left:140% } }
+  .btn.felt{ background:var(--felt-light); color:var(--cream); border:1px solid var(--gold); }
+  .btn.ghost{ background:transparent; color:var(--text); border:1px solid rgba(201,162,75,.45); }
+  .btn.red{ background:#6B2B22; color:#FFD9D2; border:1px solid rgba(255,120,100,.4); }
+  .btn.off{ opacity:.4; pointer-events:none; }
+  .btn.lot{ min-height:84px; font-family:'Yeseva One',serif; font-weight:400; font-size:36px; letter-spacing:.02em; gap:0; }
+  .btn.lot small{ font-family:'IBM Plex Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:.04em; opacity:.85; }
+  .btn.lot.dim{ opacity:.6; animation:breathe 2.4s ease-in-out infinite; } .btn.lot.dim::after{ display:none; }
+  @keyframes breathe{ 50%{ opacity:.75 } }
+  .btn.lot.on{ opacity:1; animation:glow .7s ease-in-out infinite alternate; } .btn.lot.on::after{ animation-duration:1.4s; }
+  @keyframes glow{ from{ box-shadow:0 0 20px rgba(230,206,133,.5); transform:scale(1) } to{ box-shadow:0 0 60px rgba(230,206,133,1); transform:scale(1.03) } }
+  .toggle{ display:flex; justify-content:space-between; align-items:center; border-radius:12px; padding:10px 14px; font-size:14.5px; cursor:pointer; transition:transform .12s; gap:10px; }
+  .toggle::before{ border-radius:8px; inset:4px; }
+  .toggle:active{ transform:scale(.98); }
+  .toggle .sw{ width:50px; height:28px; border-radius:30px; background:#55605A; position:relative; transition:background .25s; flex:none; box-shadow:inset 0 2px 4px rgba(0,0,0,.4); }
+  .toggle .sw::after{ content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:left .25s cubic-bezier(.2,1.3,.4,1); box-shadow:0 2px 4px rgba(0,0,0,.4); }
+  .toggle.on .sw{ background:var(--green); } .toggle.on .sw::after{ left:25px; }
+  .spacer{ flex:1; }
+  .note{ font-size:12.5px; color:var(--mut); line-height:1.4; text-align:center; } .note b{ color:var(--gold-soft); }
+  .morral{ width:100%; min-height:104px; flex:none; border-radius:18px; border:2px solid var(--gold); color:var(--cream); cursor:pointer; display:flex; align-items:center; gap:12px; padding:12px 14px; text-align:left; font-family:'IBM Plex Sans',sans-serif; transition:transform .12s, box-shadow .3s; }
+  .morral::before{ border-radius:13px; }
+  .morral:active{ transform:scale(.98); }
+  .morral .ic{ width:56px; height:56px; display:flex; align-items:center; justify-content:center; color:var(--gold-soft); filter:drop-shadow(0 6px 10px rgba(0,0,0,.5)); flex:none; } .morral .ic svg{ width:52px; height:52px; stroke-width:1.5; }
+  .morral .tt{ font-family:'Yeseva One',serif; font-size:21px; line-height:1.05; } .morral .tt small{ display:block; font-family:'IBM Plex Sans',sans-serif; font-size:11.5px; color:var(--mut); margin-top:5px; line-height:1.3; }
+  .morral .badge{ position:absolute; top:-12px; right:-10px; min-width:34px; height:34px; border-radius:20px; background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:var(--felt-dark); font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:17px; display:flex; align-items:center; justify-content:center; padding:0 9px; box-shadow:0 6px 14px -4px rgba(0,0,0,.6); }
+  .morral.pulse{ animation:glowsoft 1.2s ease-in-out infinite alternate; } .morral.pulse .ic{ animation:wiggle 2.8s ease-in-out infinite; }
+  @keyframes glowsoft{ from{ box-shadow:0 0 14px rgba(230,206,133,.35) } to{ box-shadow:0 0 36px rgba(230,206,133,.85) } }
+  @keyframes wiggle{ 0%,55%,100%{ transform:rotate(0) } 62%{ transform:rotate(-12deg) } 72%{ transform:rotate(10deg) } 82%{ transform:rotate(-6deg) } 90%{ transform:rotate(4deg) } }
+
+  /* ── morral desplegado (desde abajo) ── */
+  .drawer{ position:absolute; left:0; right:0; bottom:0; height:300px; background:rgba(8,32,22,.97); border-top:2px solid var(--gold); transform:translateY(104%); transition:transform .32s cubic-bezier(.2,1.1,.3,1); z-index:8; display:flex; flex-direction:column; box-shadow:0 -20px 50px -20px rgba(0,0,0,.8); }
+  .drawer.on{ transform:none; }
+  .drawer .dh{ display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid rgba(201,162,75,.3); gap:10px; }
+  .drawer .dh .tt{ font-family:'Yeseva One',serif; font-size:22px; color:var(--cream); display:flex; align-items:center; gap:10px; } .drawer .dh .tt svg{ color:var(--gold-soft); width:26px; height:26px; }
+  .drawer .dh .tt small{ display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.16em; color:var(--mut); margin-top:3px; }
+  .drawer .dh .btn{ width:auto; min-height:44px; font-size:14px; padding:0 14px; border-radius:10px; flex-direction:row; gap:8px; }
+  .drawer .list{ padding:12px 16px; display:flex; gap:10px; align-items:flex-start; }
+  .thumb{ flex:none; width:128px; background:rgba(12,46,31,.7); border:1px solid rgba(201,162,75,.4); border-radius:12px; padding:6px; cursor:grab; touch-action:none; position:relative; transition:transform .15s, opacity .15s, box-shadow .2s; animation:thumbin .45s cubic-bezier(.2,1.2,.4,1) backwards; animation-delay:calc(var(--i) * 45ms); }
+  @keyframes thumbin{ from{ opacity:0; transform:translateY(30px) scale(.9) } }
+  .thumb:active{ cursor:grabbing; transform:scale(1.04); box-shadow:0 14px 30px -10px rgba(0,0,0,.8); }
+  .thumb.lift{ transform:scale(.96); opacity:.5; }
+  .thumb .nm{ font-family:'Yeseva One',serif; font-size:13px; color:var(--cream); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mini{ position:relative; aspect-ratio:3/4; background:var(--bg) center/100% 100% no-repeat; border-radius:8px; box-shadow:0 8px 18px -8px rgba(0,0,0,.6); }
+  .mgrid{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); height:88%; aspect-ratio:1656/2620; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr); border-radius:3px; box-shadow:0 4px 10px rgba(0,0,0,.35); }
+  .mgrid img{ display:block; width:100%; height:100%; min-width:0; min-height:0; }
+  .thumb .tag{ position:absolute; top:-8px; right:-6px; } .thumb .au{ position:absolute; top:-8px; left:-6px; }
+  .qbanner{ width:100%; flex:none; display:flex; align-items:center; justify-content:center; gap:10px; background:rgba(201,162,75,.14); border:1px dashed var(--gold-soft); border-radius:14px; padding:9px 16px; font-size:15px; color:var(--cream); } .qbanner b{ color:var(--gold-soft); } .qbanner svg{ color:var(--gold-soft); width:20px; height:20px; }
+  .tabla.queued{ animation:floaty 3.2s ease-in-out infinite; }
+  .tabla.queued:nth-child(2n){ animation-delay:-1.4s; }
+  .tabla.queued.enter{ animation:dealin .6s cubic-bezier(.2,1.3,.4,1) backwards, floaty 3.2s ease-in-out .6s infinite; }
+  @keyframes floaty{ 0%,100%{ transform:translateY(0) rotate(-.6deg) } 50%{ transform:translateY(-9px) rotate(.6deg) } }
+  .tabla.queued .board{ box-shadow:0 0 0 4px rgba(230,206,133,.75), 0 30px 50px -16px rgba(0,0,0,.8); }
+  .tabla.queued .rib{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-8deg); background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:#3A2A0C; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:11px; letter-spacing:.12em; text-transform:uppercase; padding:8px 14px; border-radius:8px; box-shadow:0 10px 24px -8px rgba(0,0,0,.7); text-align:center; line-height:1.35; white-space:nowrap; z-index:2; }
+  .tabla.queued .rib small{ display:block; font-size:9.5px; letter-spacing:.08em; opacity:.85; }
+  .tabla.queued .hd .id{ padding-left:28px; } .tabla.queued .pin{ position:absolute; top:-12px; left:-6px; width:30px; height:30px; color:#E86A9A; filter:drop-shadow(0 6px 8px rgba(0,0,0,.6)); z-index:3; transform:rotate(-20deg); }
+  .tabla.queued .pin svg{ width:30px; height:30px; stroke-width:1.8; }
+  .tabla.queued .ft .qa{ cursor:pointer; border:1px solid rgba(201,162,75,.5); border-radius:20px; padding:3px 9px; color:var(--gold-soft); display:inline-flex; align-items:center; gap:4px; } .tabla.queued .ft .qa.on{ background:var(--gold); color:var(--felt-dark); border-color:transparent; }
+  .dragghost{ position:absolute; z-index:50; pointer-events:none; width:170px; transform:rotate(-4deg) scale(1.05); filter:drop-shadow(0 24px 30px rgba(0,0,0,.7)); }
+
+  /* ── editor de tabla ── */
+  .editor{ position:absolute; inset:0; z-index:9; background:linear-gradient(180deg,#0F3D29,#0A2618); display:none; }
+  .editor.on{ display:block; animation:edin .3s cubic-bezier(.2,1,.3,1); }
+  @keyframes edin{ 0%{ transform:translateY(30px) scale(.98); opacity:0 } 100%{ transform:none; opacity:1 } }
+  .editor .top{ position:absolute; left:0; right:0; top:0; height:44px; display:flex; align-items:center; justify-content:center; gap:12px; }
+  .editor .top .lbl{ font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--mut); }
+  .editor input.nm{ font-family:'Yeseva One',serif; font-size:26px; color:var(--cream); background:transparent; border:none; border-bottom:2px dashed rgba(201,162,75,.5); outline:none; width:300px; text-align:center; padding:2px 6px; }
+  .swrow{ position:absolute; left:0; right:0; top:46px; height:60px; display:flex; align-items:center; justify-content:center; gap:10px; }
+  .swrow .lbl{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--mut); margin-right:6px; display:flex; align-items:center; gap:6px; } .swrow .lbl svg{ width:18px; height:18px; color:var(--gold-soft); }
+  .sw{ width:48px; height:48px; border-radius:50%; border:3px solid rgba(255,255,255,.35); background:center/cover no-repeat; cursor:pointer; transition:transform .18s cubic-bezier(.2,1.3,.4,1), border-color .18s, box-shadow .18s; box-shadow:0 6px 14px -6px rgba(0,0,0,.7); position:relative; }
+  .sw:active{ transform:scale(.92); }
+  .sw.on{ border-color:var(--gold-soft); transform:scale(1.18); box-shadow:0 0 0 3px rgba(230,206,133,.35), 0 10px 20px -6px rgba(0,0,0,.8); }
+  .sw.on::after{ content:"✓"; position:absolute; right:-6px; bottom:-6px; width:20px; height:20px; border-radius:50%; background:var(--gold-soft); color:var(--felt-dark); font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .swrow .swname{ font-family:'Yeseva One',serif; font-size:16px; color:var(--gold-soft); margin-left:8px; min-width:80px; }
+  .editor .mid{ position:absolute; left:0; right:0; top:110px; bottom:152px; display:flex; align-items:center; justify-content:center; gap:56px; }
+  .editor .sidebtn{ display:flex; flex-direction:column; align-items:center; gap:10px; width:220px; }
+  .editor .sidebtn .cap{ font-size:15px; color:var(--cream); text-align:center; line-height:1.3; } .editor .sidebtn .cap small{ display:block; color:var(--mut); font-size:12.5px; margin-top:2px; }
+  .editor .sidebtn .toggle{ width:100%; }
+  .bigx{ width:112px; height:112px; border-radius:50%; border:4px solid #F0B5AC; background:linear-gradient(180deg,#8A3A2E,#5A241B); color:#FFE1DB; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 14px 30px -10px rgba(0,0,0,.7); transition:transform .12s; }
+  .bigx svg{ width:56px; height:56px; stroke-width:2.4; }
+  .bigx:active, .bigsave:active{ transform:scale(.94); }
+  .bigsave{ position:relative; overflow:hidden; width:220px; height:112px; border-radius:24px; border:none; background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:#3A2A0C; font-family:'IBM Plex Sans',sans-serif; font-weight:700; font-size:30px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; box-shadow:0 1px 0 rgba(255,255,255,.55) inset, 0 14px 30px -10px rgba(0,0,0,.7); transition:transform .12s; }
+  .bigsave::after{ content:""; position:absolute; top:-50%; bottom:-50%; width:36%; left:-60%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent); transform:skewX(-20deg); animation:sheen 4s ease-in-out infinite; pointer-events:none; }
+  .bigsave small{ font-size:13px; font-weight:600; letter-spacing:.1em; opacity:.8; }
+  .bigsave.dirty{ animation:glowsoft 1s ease-in-out infinite alternate; }
+  .editor .eboard{ height:100%; display:flex; align-items:center; }
+  .editor .eboard .board{ width:274px; }
+  .editor .cell.sel .pic{ outline:4px solid var(--gold-soft); outline-offset:-4px; box-shadow:0 0 0 4px var(--gold-soft); }
+  .editor .cell.over .pic{ outline:5px solid #7FD6A4; outline-offset:-5px; transform:scale(1.08); box-shadow:0 0 0 5px #7FD6A4, 0 10px 30px rgba(0,0,0,.6); z-index:2; }
+  .editor .cell.swap .pic{ animation:popin .4s cubic-bezier(.2,1.4,.5,1); }
+  @keyframes popin{ 0%{ transform:scale(.5) rotate(-10deg) } 100%{ transform:none } }
+  .editor .small{ position:absolute; left:18px; bottom:162px; }
+  .editor .small .btn{ width:auto; min-height:44px; font-size:14px; padding:0 16px; border-radius:30px; flex-direction:row; gap:8px; }
+  .editor .car{ position:absolute; left:0; right:0; bottom:0; height:152px; background:rgba(8,32,22,.78); border-top:2px solid var(--gold); display:flex; flex-direction:column; }
+  .editor .car .cap{ height:26px; display:flex; align-items:center; justify-content:center; font-size:13.5px; color:var(--cream); gap:6px; } .editor .car .cap b{ color:var(--gold-soft); }
+  .editor .car .row{ flex:1; display:flex; align-items:center; min-height:0; }
+  .editor .car .arrow{ flex:none; width:90px; height:100%; border:none; background:transparent; color:var(--gold-soft); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .12s, color .12s; }
+  .editor .car .arrow svg{ width:54px; height:54px; stroke-width:2.6; }
+  .editor .car .arrow:active{ color:#fff; transform:scale(.85); }
+  .editor .car .win{ flex:1; height:100%; overflow:hidden; position:relative; touch-action:none; }
+  .editor .car .win::before, .editor .car .win::after{ content:""; position:absolute; top:0; bottom:0; width:70px; z-index:2; pointer-events:none; }
+  .editor .car .win::before{ left:0; background:linear-gradient(90deg,rgba(8,32,22,.95),transparent); } .editor .car .win::after{ right:0; background:linear-gradient(270deg,rgba(8,32,22,.95),transparent); }
+  .strip{ position:absolute; left:0; top:0; height:100%; display:flex; align-items:center; gap:10px; padding:0 10px; will-change:transform; }
+  .strip.anim{ transition:transform .35s cubic-bezier(.2,.9,.3,1); }
+  .stk{ flex:none; width:70px; background:#fff; border-radius:8px; padding:3px; position:relative; cursor:grab; box-shadow:0 8px 18px -8px rgba(0,0,0,.7); border:3px solid transparent; transition:transform .15s, box-shadow .15s; }
+  .stk img{ display:block; width:100%; border-radius:5px; }
+  .stk.used::after{ content:"✓ en tu tabla"; position:absolute; left:3px; right:3px; bottom:3px; background:#2D6A48; color:#DFF3E6; font-family:'IBM Plex Mono',monospace; font-size:8px; letter-spacing:.04em; text-align:center; border-radius:4px; padding:2px 0; }
+  .stk.pick{ border-color:var(--gold-soft); box-shadow:0 0 0 4px var(--gold-soft), 0 10px 30px rgba(0,0,0,.6); transform:translateY(-8px) scale(1.06); }
+  .stkghost{ position:absolute; z-index:60; pointer-events:none; width:110px; background:#fff; border-radius:10px; padding:5px; transform:rotate(-5deg) scale(1.1); filter:drop-shadow(0 24px 30px rgba(0,0,0,.7)); }
+  .stkghost img{ display:block; width:100%; border-radius:6px; }
+
+  footer{ display:flex; align-items:center; justify-content:space-between; padding:0 20px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--mut); letter-spacing:.1em; background:rgba(8,32,22,.6); border-top:1px solid rgba(201,162,75,.3); position:relative; z-index:1; }
+  footer span{ display:flex; align-items:center; gap:8px; } footer svg{ color:var(--gold-soft); }
+
+  /* ── resultado ── */
+  .ov{ display:none; position:absolute; inset:0; background:rgba(8,32,22,.93); align-items:center; justify-content:center; flex-direction:column; text-align:center; gap:8px; z-index:5; padding:20px 60px; cursor:pointer; }
+  .ov .t.win{ background:linear-gradient(180deg,#FFF6CC 0%,#E6CE85 45%,#C9A24B 70%,#9C7A30 100%); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 24px rgba(230,206,133,.8)) drop-shadow(0 6px 0 rgba(90,63,18,.95)); animation:bounce 1.1s ease-in-out infinite; font-size:110px; }
+  @keyframes bounce{ 0%,100%{ transform:scale(1) rotate(-2deg) } 50%{ transform:scale(1.06) rotate(2deg) } }
+  .ov .ribbon{ font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.3em; text-transform:uppercase; color:var(--felt-dark); background:linear-gradient(90deg,#E86A9A,#F2C14E,#3E8C63,#2F7FC1,#E86A9A); background-size:300% 100%; animation:slide 3s linear infinite; padding:6px 20px; border-radius:30px; font-weight:600; margin-bottom:6px; }
+  @keyframes slide{ to{ background-position:300% 0 } }
+  .ov.on{ display:flex; animation:pop .5s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes pop{ 0%{ transform:scale(.7); opacity:0 } 100%{ transform:none; opacity:1 } }
+  .ov .t{ font-family:'Yeseva One',serif; font-size:96px; color:var(--gold-soft); line-height:1; text-shadow:0 0 50px rgba(230,206,133,.7); }
+  .ov .t.lose{ font-size:56px; color:var(--cream); text-shadow:none; }
+  .ov .ribbon.hide{ display:none; }
+  .ov .a{ font-family:'Yeseva One',serif; font-size:80px; color:var(--cream); }
+  .ov .w{ font-size:24px; color:var(--cream); } .ov .s{ font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:.14em; color:var(--mut); text-transform:uppercase; margin-top:8px; }
+  .ov.banner{ bottom:auto; height:196px; padding:8px 40px; gap:0; background:linear-gradient(180deg,rgba(8,32,22,.97),rgba(8,32,22,.88)); border-bottom:2px solid var(--gold); animation:none; }
+  .ov.banner .ribbon{ font-size:11px; padding:4px 16px; margin-bottom:2px; }
+  .ov.banner .t.win{ font-size:58px; animation-duration:1.6s; }
+  .ov.banner .a{ font-size:72px; line-height:1.05; }
+  .ov:not(.lose) .a{ font-family:'IBM Plex Mono',monospace; font-weight:600; background:linear-gradient(180deg,#FFF6CC 0%,#E6CE85 45%,#C9A24B 75%,#9C7A30 100%); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 4px 0 rgba(90,63,18,.9)) drop-shadow(0 0 22px rgba(255,243,196,.75)); animation:amtpop .9s cubic-bezier(.2,1.4,.4,1) both, amtpulse 1.1s ease-in-out .9s infinite alternate; }
+  .ov .w .red{ color:#FFB3A7; }
+  /* otro ganó el grande: rojo, sin sonido */
+  .ov.lose{ background:rgba(58,18,13,.95); } .ov.lose .t.lose{ color:#FFB3A7; } .ov.lose .a{ color:#FFD9D2; font-size:54px; font-family:'IBM Plex Mono',monospace; font-weight:600; } .ov.lose .w{ color:#FFD9D2; } .ov.lose .x{ border-color:rgba(240,181,172,.5); color:#FFD9D2; }
+  .ov.banner .w{ font-size:16px; } .ov.banner .s{ font-size:11px; margin-top:2px; } .ov.banner .x{ display:none; }
+  .arena.won{ padding-top:208px; }
+  .arena.counting > *{ opacity:.12; filter:blur(2px); transition:opacity .4s, filter .4s; } .arena > *{ transition:opacity .4s, filter .4s; }
+  .tabla.winner{ z-index:2; animation:winpulse 1.2s ease-in-out infinite alternate; }
+  @keyframes winpulse{ from{ transform:scale(1.04) } to{ transform:scale(1.08) } }
+  .tabla.winner .board{ box-shadow:0 0 0 5px var(--gold-soft), 0 0 60px 10px rgba(230,206,133,.75), 0 30px 60px -16px rgba(0,0,0,.85); }
+  .tabla.winner .hd .id b{ color:var(--gold-soft); }
+  .tabla.winner .winrib{ position:absolute; left:50%; bottom:14px; transform:translateX(-50%) rotate(-4deg); background:linear-gradient(90deg,#E86A9A,#F2C14E,#3E8C63,#2F7FC1,#E86A9A); background-size:300% 100%; animation:slide 3s linear infinite; color:var(--felt-dark); font-family:'Yeseva One',serif; font-size:26px; padding:6px 22px; border-radius:10px; box-shadow:0 12px 26px -8px rgba(0,0,0,.8); white-space:nowrap; z-index:3; }
+  .tabla.dim{ opacity:.28; filter:grayscale(.85) brightness(.7); transform:scale(.94); pointer-events:none; transition:opacity .6s, filter .6s, transform .6s; }
+  .ov .x{ position:absolute; right:18px; top:14px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.14em; color:var(--mut); border:1px solid rgba(201,162,75,.4); border-radius:30px; padding:8px 14px; }
+
+  /* ── esperando la tarjeta del casino ── */
+  .card{ display:none; position:absolute; inset:0; z-index:58; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap:14px; padding:40px;
+    background:radial-gradient(760px 460px at 50% 42%, rgba(44,122,85,.5), transparent 70%), rgba(8,32,22,.97); }
+  .card.on{ display:flex; }
+  .card .tc{ width:132px; height:84px; border-radius:11px; background:linear-gradient(135deg,#1C5A3D,#0C2E1F 60%); border:1px solid rgba(201,162,75,.6); position:relative; box-shadow:0 18px 36px -14px rgba(0,0,0,.9); animation:cardin 1.6s ease-in-out infinite; }
+  .card .tc::before{ content:""; position:absolute; left:12px; top:30px; width:22px; height:17px; border-radius:4px; background:linear-gradient(135deg,#F2DA98,#C9A24B); }
+  .card .tc::after{ content:"CLUB"; position:absolute; right:10px; bottom:8px; font:600 9px/1 'IBM Plex Mono',monospace; letter-spacing:.2em; color:var(--gold-soft); }
+  @keyframes cardin{ 0%,100%{ transform:translateX(-14px) rotate(-3deg) } 50%{ transform:translateX(14px) rotate(3deg) } }
+  .card h1{ font-family:'Yeseva One',serif; font-weight:400; font-size:50px; color:var(--cream); line-height:1.1; }
+  .card p{ font-size:21px; color:var(--mut); max-width:660px; line-height:1.45; } .card p b{ color:var(--gold-soft); }
+  .card .k{ font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.22em; color:rgba(255,255,255,.5); }
+  .card.ok h1{ color:var(--gold-soft); } .card.ok .tc{ animation:none; opacity:.25; }
+  /* ── pantallas de sistema: sin conexión (torre amarilla) y fuera de servicio (torre roja) ── */
+  .sys{ display:none; position:absolute; inset:0; z-index:60; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap:16px; padding:40px 80px; }
+  .sys.on{ display:flex; }
+  .sys.offline{ background:radial-gradient(800px 500px at 50% 30%, rgba(242,193,78,.18), transparent 70%), rgba(58,44,8,.97); }
+  .sys.falla{ background:radial-gradient(800px 500px at 50% 30%, rgba(178,58,46,.25), transparent 70%), rgba(52,16,12,.97); }
+  .sys .ic{ width:130px; height:130px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 20px 50px -14px rgba(0,0,0,.8); animation:breathe 2s ease-in-out infinite; }
+  .sys.offline .ic{ background:linear-gradient(180deg,#FFD54A,#B8902A); color:#3A2A0C; } .sys.falla .ic{ background:linear-gradient(180deg,#E0564A,#8A2A20); color:#FFE1DB; }
+  .sys .ic svg{ width:70px; height:70px; stroke-width:2.2; }
+  .sys h1{ font-family:'Yeseva One',serif; font-weight:400; font-size:58px; color:var(--cream); line-height:1.1; }
+  .sys p{ font-size:23px; color:var(--cream); max-width:820px; line-height:1.45; }
+  .sys .k{ font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.22em; color:rgba(255,255,255,.6); margin-top:6px; }
+  /* ── ficha de información (al tocar) ── */
+  .sheet{ position:absolute; inset:0; z-index:40; background:rgba(8,32,22,.78); display:none; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
+  .sheet.on{ display:flex; }
+  .sheet .card{ width:660px; max-width:94%; max-height:96%; overflow:hidden; background:linear-gradient(180deg,#17502F,#0C2E1F); border:2px solid var(--gold); border-radius:24px; padding:24px 30px 22px; animation:pop .35s cubic-bezier(.2,1.3,.4,1); position:relative; box-shadow:0 40px 80px -30px rgba(0,0,0,.9); }
+  .sheet .card::before{ content:""; position:absolute; inset:7px; border:1px dashed rgba(230,206,133,.3); border-radius:17px; pointer-events:none; }
+  .sheet h2{ font-family:'Yeseva One',serif; font-weight:400; font-size:30px; color:var(--gold-soft); display:flex; align-items:center; gap:12px; line-height:1.1; margin-bottom:10px; } .sheet h2 svg{ width:34px; height:34px; flex:none; }
+  .sheet .b{ font-size:17px; line-height:1.5; color:var(--cream); } .sheet .b b{ color:var(--gold-soft); } .sheet .b p{ margin:6px 0; }
+  .sheet .big{ font-family:'IBM Plex Mono',monospace; font-size:44px; color:#FFF3C4; font-weight:600; line-height:1.1; text-shadow:0 0 18px rgba(230,206,133,.45); margin:4px 0 8px; }
+  .sheet .steps{ display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-top:8px; }
+  .sheet .step{ display:flex; gap:12px; align-items:flex-start; background:rgba(8,32,22,.45); border:1px solid rgba(201,162,75,.3); border-radius:14px; padding:10px 12px; font-size:14.5px; line-height:1.4; }
+  .sheet .step .ic{ width:40px; height:40px; border-radius:50%; background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:var(--felt-dark); display:flex; align-items:center; justify-content:center; flex:none; font-family:'Yeseva One',serif; font-size:20px; position:relative; }
+  .sheet .step .ic svg{ width:22px; height:22px; stroke-width:2.1; }
+  .sheet .step b{ color:var(--gold-soft); } .sheet .step b.tt{ display:block; font-size:15px; margin-bottom:2px; }
+  .sheet .cardv{ display:flex; gap:22px; align-items:center; } .sheet .cardv img{ width:150px; border-radius:8px; background:#fff; padding:5px; box-shadow:0 16px 30px -12px rgba(0,0,0,.8); animation:flipin .6s cubic-bezier(.2,.9,.3,1) both; }
+  .sheet .verse{ font-family:'Yeseva One',serif; font-size:22px; color:var(--cream); line-height:1.3; font-style:italic; }
+  .sheet .kv{ display:flex; justify-content:space-between; gap:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--mut); padding:6px 0; border-bottom:1px dashed rgba(201,162,75,.25); } .sheet .kv b{ color:var(--cream); font-weight:600; text-align:right; }
+  .sheet .acts{ display:flex; gap:10px; margin-top:18px; } .sheet .acts .btn{ min-height:58px; font-size:18px; flex-direction:row; gap:10px; }
+  .sheet .acts .btn.gold{ flex:1.4; } .sheet .acts .btn.ghost{ flex:1; }
+  .sheet .phase{ display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:10px; font-size:15px; } .sheet .phase.cur{ background:rgba(201,162,75,.16); outline:1px solid rgba(201,162,75,.45); }
+  .sheet .phase .d{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--mut); margin-left:auto; white-space:nowrap; } .sheet .phase .dot{ width:10px; height:10px; border-radius:50%; background:var(--gold); flex:none; } .sheet .phase.cur .dot{ animation:blink 1s infinite; }
+</style></head>
+<body>
+<header>
+  <div class="term"><div class="num" id="tnum">T-117</div><div><div class="brand display">Lotería Mexicana</div><small>SALA MONTERREY · MESA PRINCIPAL</small></div></div>
+  <div class="jack panel" id="jackBtn"><div class="bulbs top" id="bulbsT"></div><div class="jk" id="jackK"></div><div class="ja" id="jackAmt">$0</div><div class="jr" id="jackMsg"><span>Toca aquí para saber cómo ganarlo</span></div><div class="bulbs bot" id="bulbsB"></div></div>
+  <div class="hright">
+    <div class="player panel" id="balBtn"><div class="av">M</div><div><div class="n">María L.</div><div class="c">TARJETA ••••4821 · <span id="ses">00:00</span></div></div><div class="bal"><div class="big" id="bal">$2,000.00</div><div class="sm">SALDO EN LOTERÍA</div></div></div>
+    <button class="ico" id="sndBtn" title="Sonido"></button><button class="ico" id="helpBtn" title="¿Cómo se juega?"></button>
+  </div>
+</header>
+
+<div class="status">
+  <span class="pill open" id="pill">APUESTAS ABIERTAS</span>
+  <span class="msg" id="msg"></span>
+  <div class="bar" id="bar"><i id="barFill"></i></div>
+  <span class="t" id="tm">00:00</span>
+</div>
+
+<main id="main">
+  <section class="arena" id="arena"></section>
+  <aside class="side"><div class="prizes panel" id="prizes"></div><div class="sdyn" id="side"></div></aside>
+  <div id="countOv"></div>
+  <div class="toast" id="toast"></div>
+  <div class="sbanner" id="sbanner"></div>
+
+  <div class="drawer" id="drawer">
+    <div class="dh"><div class="tt" id="dTitle">Mi morral<small id="dCount">0 TABLAS</small></div><div style="display:flex;gap:8px"><button class="btn felt" id="dNew"></button><button class="btn ghost" id="dClose"></button></div></div>
+    <div class="list" id="dList"></div>
+  </div>
+
+  <div class="editor" id="editor">
+    <div class="top"><span class="lbl">Tu tabla</span><input class="nm" id="eName" maxlength="16" spellcheck="false"></div>
+    <div class="swrow" id="swrow"></div>
+    <div class="mid">
+      <div class="sidebtn"><button class="bigx" id="eClose"></button><div class="cap">Cerrar<small>sin guardar cambios</small></div></div>
+      <div class="eboard" id="eBoard"></div>
+      <div class="sidebtn"><button class="bigsave" id="eSave">Guardar<small>MI TABLA</small></button><div class="cap" id="eSaveCap">&nbsp;</div><div class="toggle panel" id="eAuto"><span>Apostar sola<br><small style="color:var(--mut)">en cada partida</small></span><span class="sw"></span></div></div>
+    </div>
+    <div class="small"><button class="btn ghost" id="eDel"></button></div>
+    <div class="car"><div class="cap" id="eTip"></div><div class="row"><button class="arrow" id="carL"></button><div class="win" id="carWin"><div class="strip" id="strip"></div></div><button class="arrow" id="carR"></button></div></div>
+  </div>
+
+  <div class="ov" id="ov"><span class="x">TOCA PARA CERRAR</span><div class="ribbon" id="ovR">Tenemos ganador</div><div class="t" id="ovT">¡Buenas!</div><div class="a" id="ovA"></div><div class="w" id="ovW"></div><div class="s" id="ovS"></div></div>
+  <div class="sheet" id="sheet"><div class="card" id="sheetCard"></div></div>
+  <div class="sys" id="sys"></div>
+  <div class="card" id="cardLock"></div>
+</main>
+
+<footer><span id="fL">SORTEO CENTRAL CON CANTOR EN VIVO · ESTA TERMINAL NO ACEPTA EFECTIVO · CARGA Y RETIRA EN CAJA</span><span id="fR">JUEGA CON RESPONSABILIDAD · +18</span></footer>
+
+<script src="sim.js"></script>
+<script src="fx.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const P = SIM.PRICE, PS = '$' + P, MAX_BETS = 9, MAX_TABLAS = 9, KEY = 'll_term_morral_v1';
+  const Q = new URLSearchParams(location.search);
+  const TNUM = Math.max(1, Math.min(999, +Q.get('t') || 117)), TID = 'T-' + TNUM;   // ?t=### : número de esta terminal (sala 3D)
+  const money = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const setHTML = (el, h) => { if (el._h !== h) { el._h = h; el.innerHTML = h; } };
+
+  // ── iconos (trazo dorado, sin emojis) ──
+  const I = (() => {
+    const w = (d, extra) => `<svg class="i" viewBox="0 0 24 24" ${extra || ''}>${d}</svg>`;
+    return {
+      bag: w('<path d="M7.5 8.5C4.6 11 3.5 13.8 3.5 16.8c0 2.6 3.8 4.7 8.5 4.7s8.5-2.1 8.5-4.7c0-3-1.1-5.8-4-8.3"/><path d="M7.5 8.5h9"/><path d="M9 8.5L7.2 4.5h9.6L15 8.5"/><path d="M8.5 15.5c1 1.2 2.2 1.8 3.5 1.8s2.5-.6 3.5-1.8"/>'),
+      pin: w('<path d="M9 3.5h6l-1 5.5 3 3H7l3-3z"/><path d="M12 12v8.5"/>'),
+      trash: w('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'),
+      sound: w('<path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.8 6.5a8 8 0 0 1 0 11"/>'),
+      mute: w('<path d="M4 10v4h4l5 4V6L8 10z"/><path d="M17 9l4 6M21 9l-4 6"/>'),
+      info: w('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'),
+      help: w('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/>'),
+      trophy: w('<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5.5a2.5 2.5 0 0 0 2.6 4M16 6h2.5a2.5 2.5 0 0 1-2.6 4M12 13v4M8.5 21h7M9.5 17h5v4h-5z"/>'),
+      close: w('<path d="M6 6l12 12M18 6L6 18"/>'),
+      check: w('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+      plus: w('<path d="M12 5v14M5 12h14"/>'),
+      left: w('<path d="M15 5l-7 7 7 7"/>'),
+      right: w('<path d="M9 5l7 7-7 7"/>'),
+      down: w('<path d="M5 9l7 7 7-7"/>'),
+      repeat: w('<path d="M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6M18 3v4h-4M6 21v-4h4"/>'),
+      coins: w('<ellipse cx="12" cy="6.5" rx="7" ry="3"/><path d="M5 6.5V17c0 1.7 3.1 3 7 3s7-1.3 7-3V6.5M5 11.8c0 1.7 3.1 3 7 3s7-1.3 7-3"/>'),
+      star: w('<path d="M12 3l2.5 6.1 6.5.6-5 4.3 1.6 6.5L12 17.1 6.4 20.5 8 14l-5-4.3 6.5-.6z"/>'),
+      hand: w('<path d="M9 11.5V5.5a1.5 1.5 0 0 1 3 0v6M12 11V7.5a1.5 1.5 0 0 1 3 0V12M15 11.5V9.5a1.5 1.5 0 0 1 3 0v5.5a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-5-2.7l-2.4-3.6a1.6 1.6 0 0 1 2.5-2L9 16v-4.5"/>'),
+      palette: w('<path d="M12 3a9 9 0 0 0 0 18c1.2 0 2-.9 2-2 0-.6-.3-1-.6-1.4-.3-.4-.4-.8-.4-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.3-4-7.6-9-7.6z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7.5" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/>'),
+      eye: w('<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="3"/>'),
+      lock: w('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+      clock: w('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>'),
+      receipt: w('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4"/>'),
+      edit: w('<path d="M4 20l4.5-1L19.5 8a2.1 2.1 0 0 0-3-3L5.5 16z"/><path d="M14 7l3 3"/>'),
+      dice: w('<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="9" cy="15" r="1.2"/>'),
+      bolt: w('<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>'),
+      wallet: w('<path d="M4 7a2 2 0 0 1 2-2h11v3"/><path d="M4 7v10a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14" r="1.2"/>'),
+      shield: w('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>'),
+      sad: w('<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M9 16c1-1.2 2-1.7 3-1.7s2 .5 3 1.7"/>'),
+      mic: w('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/>'),
+      olla: w('<path d="M8.5 5h7v2.3c3.2 1 5 3.6 5 6.7 0 3.8-3.4 6.5-8.5 6.5S3.5 17.8 3.5 14c0-3.1 1.8-5.7 5-6.7z"/><path d="M8.5 7.3h7"/><path d="M10.3 13.5h3.4M12 11.8v3.4"/>'),
+      wifi: w('<path d="M2 8.6a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.4a5 5 0 0 1 7 0M12 19h.01M3 3l18 18"/>'),
+      wrench: w('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-2.1-2.1z"/>'),
+      bean: '<img src="' + SIM.bean(0) + '" alt="">',
+    };
+  })();
+
+  // ── fondos de tabla (colección customize/, versiones ligeras en assets/tablas/) ──
+  const BG = {
+    table_2: { name: 'Flores', img: 'assets/tablas/table_2.webp', sw: 'assets/tablas/table_2_sw.webp' },
+    table_1: { name: 'Cartón', img: 'assets/tablas/table_1.webp', sw: 'assets/tablas/table_1_sw.webp' },
+    table_7: { name: 'Rosa', img: 'assets/tablas/table_7.webp', sw: 'assets/tablas/table_7_sw.webp' },
+    table_3: { name: 'Lila', img: 'assets/tablas/table_3.webp', sw: 'assets/tablas/table_3_sw.webp' },
+    table_6: { name: 'Rejilla', img: 'assets/tablas/table_6.webp', sw: 'assets/tablas/table_6_sw.webp' },
+    table_4: { name: 'Neón', img: 'assets/tablas/table_4.webp', sw: 'assets/tablas/table_4_sw.webp' },
+  };
+  const BG_IDS = Object.keys(BG), BG_PICK = BG_IDS;
+  const bgOf = (id) => BG[id] || BG.table_2;
+  const bgStyle = (id) => ` style="--bg:url(${bgOf(id).img})"`;
+
+  // ── morral (persistente en esta terminal) ──
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function rand16(R) { R = R || Math.random; const d = Array.from({ length: 54 }, (_, i) => i + 1); for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; } return d.slice(0, 16); }
+  let T; try { T = JSON.parse(localStorage.getItem(KEY)); } catch (e) { T = null; }
+  if (!Array.isArray(T) || !T.length) T = ['La de la suerte', 'Tabla de Mamá', 'Tabla 3'].map((name, i) => ({ id: 'T' + (i + 1), name, cards: rand16(mulberry(1000 + i * 17)) }));
+  T.forEach((t, i) => { if (!BG[t.bg]) t.bg = BG_IDS[i % BG_IDS.length]; });
+  let nextId = T.length + 1;
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(T)); } catch (e) {} };
+  const byId = (id) => T.find((t) => t.id === id);
+
+  // ── estado de la sesión del jugador ──
+  const L = { round: -1, balance: 2000, casino: 1250, bets: [], queue: [], auto: false, won: null, lost: false, started: Date.now(), drawerOpen: false, edit: null, entered: new Set(), shownCard: 0, countKey: null, muted: false, small: null, smallMissed: false, smallAnnounced: false, lastSold: null, coinN: 0, demo: null };
+  let toastT = 0;
+  function toast(txt, bad, icon) { const t = $('toast'); t.innerHTML = (icon || (bad ? I.info : I.check)) + '<span>' + esc(txt) + '</span>'; t.className = 'toast on' + (bad ? ' bad' : ''); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2400); if (bad === true) FX.beep(false); }   // bad = 'silent' → rojo sin sonido
+  function flashBal(dir) { const b = $('bal'); b.classList.remove('up', 'down'); void b.offsetWidth; b.classList.add(dir); setTimeout(() => b.classList.remove(dir), 900); }
+  const balOdo = FX.counter($('bal'), money, { upDur: 700 });
+  const jackOdo = FX.counter($('jackAmt'), SIM.money, { upDur: 900 });
+  $('bulbsT').innerHTML = $('bulbsB').innerHTML = Array.from({ length: 22 }, (_, i) => `<i style="--i:${i}"></i>`).join('');
+  $('jackK').innerHTML = I.star + ' POZO ACUMULADO ' + I.star;
+  $('tnum').textContent = TID;
+  if (Q.get('mute') === '1') { L.muted = true; FX.setMuted(true); }
+  $('sndBtn').innerHTML = L.muted ? I.mute : I.sound; $('sndBtn').classList.toggle('off', L.muted); $('helpBtn').innerHTML = I.help;
+  $('dNew').innerHTML = I.plus + ' Nueva tabla'; $('dClose').innerHTML = I.close + ' Cerrar'; $('eClose').innerHTML = I.close; $('eDel').innerHTML = I.trash + ' Eliminar esta tabla';
+  $('carL').innerHTML = I.left; $('carR').innerHTML = I.right;
+  $('dTitle').innerHTML = I.bag + '<span>Mi morral<small id="dCount">0 TABLAS</small></span>';
+  $('fL').innerHTML = I.mic + ' SORTEO CENTRAL CON CANTOR EN VIVO · ESTA TERMINAL NO ACEPTA EFECTIVO · CARGA Y RETIRA EN CAJA'; $('fR').innerHTML = I.shield + ' JUEGA CON RESPONSABILIDAD · +18';
+
+  $('prizes').innerHTML = `<div class="ph">${I.coins} Premios de esta partida<span class="tap">${I.info}</span></div>
+    <div class="prow" id="prBig"><span class="pot" id="potBig">${I.olla}</span><div class="pl"><b>Grande</b><small id="pbSub">tabla llena</small></div><div class="pv" id="pvBig">$0</div></div>
+    <div class="prow" id="prSmall"><span class="pot" id="potSmall">${I.olla}</span><div class="pl"><b>Chico</b><small id="psSub">4 figuras</small></div><div class="pv" id="pvSmall">$0</div></div>`;
+  const bigOdo = FX.counter($('pvBig'), SIM.money, { upDur: 700 }), smallOdo = FX.counter($('pvSmall'), SIM.money, { upDur: 700 });
+  $('prizes').onclick = () => infoPrizes(SIM.state());
+  $('sbanner').innerHTML = `<span class="ic">${I.trophy}</span><div class="tx"><b id="sbT"></b><span id="sbW"></span></div><div class="am" id="sbA"></div>`;
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const smallWinnerText = (s) => { const w = s.smallWinner; return (w.terminal ? 'T-' + w.terminal : w.alias) + ' con ' + w.pattern + ' en la carta ' + s.kSmall; };
+  // moneditas que vuelan de un elemento a otro (del contador de ventas al botesito, del saldo al botesito, del botesito al saldo…)
+  function coins(fromEl, toEl, n, opts) {
+    if (!fromEl || !toEl) return;
+    const b = bodyRect(), k = b.width / 1280, f = fromEl.getBoundingClientRect(), t = toEl.getBoundingClientRect();
+    const x0 = (f.left + f.width / 2 - b.left) / k, y0 = (f.top + f.height / 2 - b.top) / k, x1 = (t.left + t.width / 2 - b.left) / k, y1 = (t.top + t.height / 2 - b.top) / k;
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('span'); c.className = 'coin'; c.textContent = '$'; document.body.appendChild(c);
+      const jx = (Math.random() - .5) * 28, jy = (Math.random() - .5) * 20, arc = -(50 + Math.random() * 60), dur = 620 + Math.random() * 240;
+      const frames = []; for (let q = 0; q <= 10; q++) { const u = q / 10, x = x0 + jx + (x1 - x0 - jx) * u, y = y0 + jy + (y1 - y0 - jy) * u + arc * 4 * u * (1 - u); frames.push({ transform: `translate(${x}px,${y}px) scale(${1.1 - .4 * u}) rotate(${u * 300}deg)`, opacity: u < .85 ? 1 : 1 - (u - .85) / .15, offset: u }); }
+      const a = c.animate(frames, { duration: dur, delay: i * 70, easing: 'ease-in-out', fill: 'forwards' });
+      a.onfinish = () => { c.remove(); toEl.classList.remove('hit'); void toEl.offsetWidth; toEl.classList.add('hit'); if (opts && opts.tick) FX.tick(); };
+    }
+  }
+  // patrones de 4 figuras que ganan el premio chico
+  const PATS = (() => { const p = []; for (let r = 0; r < 4; r++) p.push({ n: 'línea', c: [0, 1, 2, 3].map((c) => r * 4 + c) }); for (let c = 0; c < 4; c++) p.push({ n: 'línea', c: [0, 1, 2, 3].map((r) => r * 4 + c) }); p.push({ n: 'diagonal', c: [0, 5, 10, 15] }, { n: 'diagonal', c: [3, 6, 9, 12] }); for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) p.push({ n: 'cuadro chico', c: [r * 4 + c, r * 4 + c + 1, r * 4 + c + 4, r * 4 + c + 5] }); p.push({ n: 'esquinas', c: [0, 3, 12, 15] }); return p; })();
+  function patternOf(bet, s) {   // el patrón completo (marcado) que se cerró más temprano: { n, c, at: carta en que se completó }
+    const marked = new Set(markedOf(bet, s)); let best = null;
+    for (const p of PATS) { if (p.c.every((i) => marked.has(bet.cards[i]))) { const at = Math.max(...p.c.map((i) => s.drawn.indexOf(bet.cards[i]))) + 1; if (!best || at < best.at) best = { n: p.n, c: p.c, at }; } }
+    return best;
+  }
+  function checkSmall(s) {   // ¿alguna de mis tablas ya tiene 4 figuras? (el sistema lo valida solo)
+    if (L.small || L.smallMissed || s.phase !== 'running') return;
+    let bb = null, bp = null;
+    for (const b of L.bets) { const p = patternOf(b, s); if (p && (!bp || p.at < bp.at)) { bp = p; bb = b; } }
+    if (!bp) return;
+    if (bp.at > s.kSmall) { L.smallMissed = true; L.smallAnnounced = true; toast('El premio chico ya lo ganó otro jugador: ' + smallWinnerText(s) + ' · tu ' + bp.n + ' llegó tarde', 'silent'); return; }
+    const tie = bp.at === s.kSmall, amount = tie ? Math.round(s.small / 2) : s.small;
+    L.small = { bet: bb, pattern: bp, amount, tie };
+    if (!tie) SIM.announce({ round: s.round, small: { k: bp.at, winner: { alias: 'María L.', terminal: TNUM, online: false, pattern: bp.n } } });
+    L.balance += amount; flashBal('up'); coins($('potSmall'), $('bal'), 8, { tick: true }); burst($('potSmall'), 8); FX.chaching(); FX.fanfare(false); FX.confetti({ count: 120, duration: 2600 });
+    smallBanner('¡Premio chico para ti!', cap(bp.n) + ' en «' + bb.name + '»' + (tie ? ' · empate: se repartió' : ''), money(amount), 'mine');
+    render(s); updatePrizes(s);
+  }
+  function announceSmall(s) {   // lo ganó otro: letrero rojo 3 s (sin sonido, para que nadie crea que ganó)
+    if (s.smallDone && !L.small && !L.smallAnnounced && s.phase === 'running') { L.smallAnnounced = true; if (s.drawnCount - s.kSmall > 1) return; const w = s.smallWinner; smallBanner('Premio chico para otro jugador', (w.terminal ? 'Terminal T-' + w.terminal + ' · ' : 'En línea · ') + w.alias + ' · ' + w.pattern + ' · carta ' + s.kSmall, SIM.money(s.small), 'other'); }   // rojo, sin sonido ni monedas: no es tu premio
+  }
+  let sbT = 0;
+  function smallBanner(title, who, amount, mode) { $('sbT').textContent = title; $('sbW').textContent = who; $('sbA').textContent = amount; const el = $('sbanner'); el.classList.toggle('mine', mode === 'mine'); el.classList.toggle('other', mode === 'other'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); clearTimeout(sbT); sbT = setTimeout(() => el.classList.remove('on'), mode === 'mine' ? 4500 : 3000); }
+  function burst(el, n) {   // moneditas que salen disparadas del botesito
+    if (!el) return; const b = bodyRect(), k = b.width / 1280, r = el.getBoundingClientRect(); const x0 = (r.left + r.width / 2 - b.left) / k, y0 = (r.top + r.height / 2 - b.top) / k;
+    for (let i = 0; i < n; i++) { const c = document.createElement('span'); c.className = 'coin'; c.textContent = '$'; document.body.appendChild(c); const ang = -Math.PI / 2 + (Math.random() - .5) * 2.6, d = 70 + Math.random() * 120, x1 = x0 + Math.cos(ang) * d, y1 = y0 + Math.sin(ang) * d + 50; const frames = []; for (let q = 0; q <= 10; q++) { const u = q / 10; frames.push({ transform: `translate(${x0 + (x1 - x0) * u}px,${y0 + (y1 - y0) * u - 90 * u * (1 - u)}px) scale(${1.1 - .5 * u}) rotate(${u * 400}deg)`, opacity: u < .7 ? 1 : 1 - (u - .7) / .3, offset: u }); } const a = c.animate(frames, { duration: 700 + Math.random() * 300, delay: i * 45, easing: 'ease-out', fill: 'forwards' }); a.onfinish = () => c.remove(); }
+    el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+  }
+  function updatePrizes(s) {
+    bigOdo(s.big); smallOdo(s.small);
+    const w = s.smallWinner;
+    const sm = L.small ? 'TUYO · ' + L.small.pattern.n + (L.small.tie ? ' · empate' : '') : s.smallDone ? 'ganó ' + (w.terminal ? 'T-' + w.terminal : w.alias) + ' · ' + w.pattern + ' · carta ' + s.kSmall : s.phase === 'running' ? 'en juego · 4 figuras' : '4 figuras · ' + Math.round(SIM.SMALL_PCT * 100) + ' % del bote';
+    const bg = L.won ? 'TUYO · tabla llena' : s.phase === 'results' ? 'ganó ' + (s.winner.terminal ? 'T-' + s.winner.terminal : s.winner.alias) + ' · tabla llena · carta ' + s.k : s.phase === 'running' ? 'en juego · tabla llena' : 'tabla llena · ' + Math.round((1 - SIM.SMALL_PCT) * 100) + ' % del bote';
+    setHTML($('psSub'), esc(sm)); setHTML($('pbSub'), esc(bg));
+    $('prSmall').classList.toggle('mine', !!L.small); $('prSmall').classList.toggle('done', !L.small && s.smallDone);
+    $('prBig').classList.toggle('mine', !!L.won); $('prBig').classList.toggle('done', !L.won && s.phase === 'results');
+  }
+
+  const markedOf = (bet, s) => bet.cards.filter((n) => s.drawn.includes(n) && (L.auto || bet.marked.has(n)));
+  const isFull = (bet, s) => markedOf(bet, s).length === 16;
+
+  function boardHTML(cards, s, bet, idx, bgId) {
+    const marked = bet ? markedOf(bet, s) : [], pat = bet && L.small && L.small.bet === bet ? L.small.pattern.c : [];
+    return `<div class="board ${marked.length === 16 ? 'full' : ''}"${bgStyle(bgId)}><div class="grid">${cards.map((n, i) => {
+      const drawn = bet && s.drawn.includes(n), m = marked.includes(n);
+      const fresh = m && bet && !bet.shown.has(n); if (fresh) bet.shown.add(n);   // el frijol solo cae (anima) la primera vez que aparece
+      return `<div class="cell ${drawn && !m ? 'hint' : ''} ${m ? 'm' : ''} ${pat.includes(i) ? 'pat' : ''}" data-n="${n}" data-i="${i}"><span class="pic ${fresh ? 'ring' : ''}"><img src="${SIM.card(n)}">${m ? `<span class="bean ${fresh ? 'new' : ''}" style="background-image:url(${SIM.bean((i + idx) % 6)})"></span>` : ''}</span></div>`;
+    }).join('')}</div></div>`;
+  }
+  const miniHTML = (cards, bgId) => `<div class="mini"${bgStyle(bgId)}><div class="mgrid">${cards.map((n) => `<img src="${SIM.card(n)}">`).join('')}</div></div>`;
+
+  // ── apostar / apartar / automáticas ──
+  function doBet(tid, s, quiet) {   // devuelve '' si apostó, o el motivo
+    const t = byId(tid); if (!t) return 'no existe';
+    const fail = (m) => { if (!quiet) toast(m, true); return m; };
+    if (s.phase !== 'lobby') return fail('Apuestas cerradas');
+    if (L.bets.some((b) => b.tid === tid)) return fail('Esa tabla ya está apostada en esta partida');
+    if (L.bets.length >= MAX_BETS) return fail('Máximo ' + MAX_BETS + ' tablas por partida');
+    if (L.balance < P) return fail('Saldo insuficiente · carga en caja o pasa saldo de tu cuenta');
+    L.balance -= P; flashBal('down'); coins($('bal'), $('potBig'), 3); coins($('bal'), $('potSmall'), 1);
+    const folio = 'F-' + (2300 + ((s.round * 7 + TNUM) % 900)) + '-' + (L.bets.length + 1);
+    L.bets.push({ tid, name: t.name, cards: t.cards.slice(), bg: t.bg, folio, marked: new Set(), shown: new Set() });
+    return '';
+  }
+  function tryBet(tid, s) {
+    const t = byId(tid); if (!t) return;
+    if (s.phase !== 'lobby') {   // apuestas cerradas: la dejamos apartada, flotando, para la siguiente partida
+      if (L.queue.includes(tid)) return toast('«' + t.name + '» ya está apartada para la siguiente partida', true);
+      if (L.queue.length >= MAX_BETS) return toast('Máximo ' + MAX_BETS + ' tablas por partida', true);
+      L.queue.push(tid); FX.beep(true); toast('«' + t.name + '» se apostará sola cuando inicie la siguiente partida', false, I.pin); render(s); if (L.drawerOpen) renderDrawer(); return;
+    }
+    if (doBet(tid, s, false)) return;
+    FX.beep(true); toast('«' + t.name + '» apostada · ' + PS + ' · folio ' + L.bets[L.bets.length - 1].folio); render(s);
+  }
+  function unbet(i, s) { if (s.phase !== 'lobby') return; const b = L.bets.splice(i, 1)[0]; L.balance += P; flashBal('up'); coins($('potBig'), $('bal'), 2); toast('«' + b.name + '» retirada · se devolvió ' + PS); render(s); if (L.drawerOpen) renderDrawer(); }
+  function unqueue(tid, s) { L.queue = L.queue.filter((x) => x !== tid); render(s); if (L.drawerOpen) renderDrawer(); }
+  function setAuto(tid, on) { const t = byId(tid); if (!t) return; t.auto = !!on; save(); toast(on ? '«' + t.name + '» se apostará sola en cada partida' : '«' + t.name + '» ya no se apuesta sola', false, I.repeat); render(SIM.state()); if (L.drawerOpen) renderDrawer(); if (L.edit === tid) renderEditor(); }
+  function autoBets(s) {   // al abrir la venta: primero las apartadas, luego las automáticas
+    const ids = [...new Set([...L.queue, ...T.filter((t) => t.auto).map((t) => t.id)])]; L.queue = [];
+    let ok = 0, noMoney = false; ids.forEach((id) => { const r = doBet(id, s, true); if (!r) ok++; else if (/Saldo/.test(r)) noMoney = true; });
+    if (ok) { FX.beep(true); toast('Se apostaron ' + ok + ' tabla' + (ok > 1 ? 's' : '') + ' automáticamente · ' + money(ok * P), false, I.repeat); }
+    if (noMoney) setTimeout(() => toast('Saldo insuficiente para apostar todas tus tablas automáticas', true), 2600);
+  }
+
+  // ancho de cada tabla según cuántas hay: 1 fila si caben con ≥150 px, si no 2 filas (hasta 9)
+  function layout(items, hasq, won) {
+    const W = 936, H = 578 - (hasq ? 72 : 0) - (won ? 192 : 0), gap = 18, compact = items >= 5, factor = 4 / 3;
+    const wFromH = (h) => 26 + (h - 28 - (compact ? 0 : 24) - 26) / factor;   // alto de tabla ≈ cabecera + pie + marco + cartas
+    const fit = (r) => { const cols = Math.ceil(items / r); return { w: Math.floor(Math.min(330, (W - gap * (cols - 1)) / cols, wFromH((H - gap * (r - 1)) / r))), compact }; };
+    const one = fit(1); if (one.w >= 150 || items <= 2) return one; const two = fit(2); return two.w > one.w ? two : one;
+  }
+
+  // ── render de arena + columna derecha ──
+  function render(s) {
+    const n = L.bets.length, lobby = s.phase === 'lobby';
+    const q = lobby ? [] : L.queue.map(byId).filter(Boolean), nq = q.length;
+    let a = '';
+    if (!n && !nq) {
+      $('arena').classList.remove('compact'); $('arena').classList.remove('won');
+      a = lobby
+        ? `<div class="empty"><div class="ic">${I.bean}</div><div class="big">Arrastra una tabla aquí para apostarla</div><div class="sub">Abre tu <b>morral</b> (abajo a la derecha), toma una tabla y suéltala en esta zona. Cada tabla cuesta <b>${PS}</b>. Puedes apostar hasta ${MAX_BETS} por partida.</div><div class="arrow">${I.down}</div></div>`
+        : `<div class="empty"><div class="ic">${I.eye}</div><div class="big">No apostaste ninguna tabla en esta partida</div><div class="sub">Puedes <b>arrastrar una tabla aquí</b> para apartarla y que se apueste sola cuando abra la venta, o <b>editar</b> tu morral. La siguiente venta abre en <b id="nextIn">${SIM.mmss(s.nextIn)}</b>.</div></div>`;
+    } else {
+      const slot = lobby && n < MAX_BETS ? 1 : 0;
+      const won = !!L.won;
+      const { w: wTabla, compact } = layout(n + nq + slot, nq > 0, won);
+      $('arena').classList.toggle('won', won);
+      $('arena').classList.toggle('compact', compact);
+      if (nq) a += `<div class="qbanner">${I.pin} <b>${nq === 1 ? 'Esta tabla se apostará sola' : 'Estas ' + nq + ' tablas se apostarán solas'}</b> cuando inicie la siguiente partida · abre en <b id="qNext">${SIM.mmss(s.nextIn)}</b></div>`;
+      a += L.bets.map((b, i) => {
+        const m = markedOf(b, s).length, full = m === 16;
+        const isW = won && L.won.bet === b;
+        const right = lobby ? `<span class="st x" data-un="${i}">${I.close} RETIRAR</span>` : `<span class="st ${isW || full ? 'win' : 'ok'}">${isW ? I.trophy + ' ¡BUENAS!' : full ? '¡LLENA!' : compact ? m + ' / 16' : 'EN JUEGO'}</span>`;
+        const ft = lobby ? `<span class="fol" data-fol="${i}">${I.receipt} ${PS} · FOLIO ${b.folio}</span><span>${I.check} APOSTADA${(byId(b.tid) || {}).auto ? ' · AUTO' : ''}</span>` : `<span>MARCADAS <b>${m} / 16</b></span><span>FALTAN ${16 - m}</span>`;
+        return `<div class="tabla ${isW ? 'winner' : won ? 'dim' : ''}" style="width:${wTabla}px" data-b="${i}" data-key="${b.folio}"><div class="hd"><span class="id"><b>${esc(b.name)}</b>${lobby ? '' : b.folio}</span>${L.small && L.small.bet === b ? '<span class="st win">CHICO ✓</span>' : ''}${right}</div><div style="position:relative">${boardHTML(b.cards, s, b, i, b.bg)}${isW ? '<div class="winrib">¡Ganadora!</div>' : ''}</div><div class="ft">${ft}</div></div>`;
+      }).join('');
+      a += q.map((t) => `<div class="tabla queued ${won ? 'dim' : ''}" style="width:${wTabla}px" data-key="q-${t.id}-${s.round}"><span class="pin">${I.pin}</span><div class="hd"><span class="id"><b>${esc(t.name)}</b></span><span class="st x" data-qx="${t.id}">${I.close} QUITAR</span></div><div style="position:relative">${boardHTML(t.cards, s, null, 0, t.bg)}<div class="rib">Apostando<small>cuando inicie la siguiente</small></div></div><div class="ft"><span>${PS} · SE APUESTA SOLA</span><span class="qa ${t.auto ? 'on' : ''}" data-qa="${t.id}">${I.repeat} SIEMPRE${t.auto ? ' ✓' : ''}</span></div></div>`).join('');
+      if (lobby && n < MAX_BETS) a += `<div class="slot"><span class="pl">+</span>Suelta aquí otra tabla<br>· ${PS} ·<br>${n} de ${MAX_BETS}</div>`;
+    }
+    $('arena').innerHTML = a;
+    $('arena').querySelectorAll('.tabla[data-key]').forEach((el) => { const k = el.dataset.key; if (!L.entered.has(k)) { L.entered.add(k); el.classList.add('enter'); } });
+    $('arena').querySelectorAll('[data-qx]').forEach((el) => el.onclick = () => unqueue(el.dataset.qx, SIM.state()));
+    $('arena').querySelectorAll('[data-qa]').forEach((el) => el.onclick = () => setAuto(el.dataset.qa, !(byId(el.dataset.qa) || {}).auto));
+    $('arena').querySelectorAll('[data-un]').forEach((el) => el.onclick = () => unbet(+el.dataset.un, SIM.state()));
+    $('arena').querySelectorAll('[data-fol]').forEach((el) => el.onclick = () => infoFolio(L.bets[+el.dataset.fol], SIM.state()));
+    $('arena').querySelectorAll('.tabla[data-b] .cell').forEach((el) => el.onclick = () => {
+      const st = SIM.state(), b = L.bets[+el.closest('.tabla').dataset.b], c = +el.dataset.n;
+      if (st.phase !== 'running' || L.won) return infoCard(c, st);
+      if (!st.drawn.includes(c)) { el.classList.remove('no'); void el.offsetWidth; el.classList.add('no'); toast('Todavía no sale «' + SIM.NAMES[c] + '»', true); return; }
+      if (b.marked.has(c) || L.auto) return infoCard(c, st);
+      b.marked.add(c); FX.tick(); render(st); checkSmall(st);
+    });
+
+    // columna derecha
+    let now = '';
+    if (lobby) now = `<div class="k">${I.clock} Venta abierta</div><div class="row" style="margin-top:2px"><span class="k">Tablas vendidas</span><span class="v2" id="nSold">${s.sold.toLocaleString('en-US')}</span></div><div class="row"><span class="k">Tus tablas</span><span class="v2">${n} / ${MAX_BETS}</span></div><div class="row"><span class="k">Cierra en</span><span class="v2" id="nLeft">${SIM.mmss(s.lobbyLeft)}</span></div><div class="tap">${I.info} TOCA PARA VER LOS PREMIOS</div>`;
+    else if (s.phase === 'start') now = `<div class="k">${I.lock} Apuestas cerradas</div><div class="nm">¡Iniciamos!<small>${n ? n + ' TABLA' + (n > 1 ? 'S' : '') + ' EN JUEGO' : 'SIN TABLAS EN JUEGO'}</small></div>`;
+    else if (s.phase === 'running') { const flip = L.shownCard !== s.lastCard; L.shownCard = s.lastCard; now = `<div class="k">${I.mic} Acaba de salir</div><img class="card ${flip ? 'flipin' : ''}" src="${SIM.card(s.lastCard)}"><div class="nm">${SIM.NAMES[s.lastCard]}<small>CARTA ${s.drawnCount} DE 54</small></div><div class="tap">${I.info} TOCA PARA VER EL VERSO</div>`; }
+    else { const w = s.winner; now = `<div class="troph">${I.trophy}</div><div class="k">Resultado</div><div class="nm">${L.won ? '¡Ganaste tú!' : esc(w.alias)}<small>${L.won ? 'FOLIO ' + L.won.bet.folio : (w.terminal ? 'TERMINAL T-' + w.terminal : 'JUGADOR EN LÍNEA') + ' · ' + s.k + ' CARTAS'}</small></div><div class="v">${SIM.money(L.won ? L.won.amount : w.amount)}</div>`; }
+    const anyFull = L.bets.some((b) => isFull(b, s));
+    const best = n ? Math.max(...L.bets.map((b) => markedOf(b, s).length)) : 0;
+    $('side').innerHTML = `
+      <div class="now panel" id="now">${now}</div>
+      ${s.phase === 'running' && n && !L.won ? `<button class="btn gold lot ${anyFull ? 'on' : 'dim'}" id="lot">¡LOTERÍA!<small>${anyFull ? '¡Tabla llena! Tócalo para gritar' : 'Te faltan ' + (16 - best) + ' en tu mejor tabla'}</small></button>` : ''}
+      ${s.phase === 'running' && !n ? `<div class="note">Esta partida la ves de espectador. Ten tus tablas listas para la siguiente venta.</div>` : ''}
+      ${n && !L.won ? `<div class="toggle panel ${L.auto ? 'on' : ''}" id="auto"><span>${I.bolt} Auto-marcar mis cartas</span><span class="sw"></span></div>` : ''}
+      <div class="spacer"></div>
+      <button class="morral panel ${!n && lobby ? 'pulse' : ''}" id="morral"><span class="ic">${I.bag}</span><span class="tt">Mis tablas<small>Toca para abrir tu morral: editar, crear o arrastrar al centro.</small></span><span class="badge">${T.length}</span></button>`;
+    $('now').onclick = () => { const st = SIM.state(); if (st.phase === 'lobby') infoPrizes(st); else if (st.phase === 'running') infoCard(st.lastCard, st); else if (st.phase === 'results') infoJackpot(st); };
+    const lot = $('lot'); if (lot) lot.onclick = () => shout(SIM.state());
+    const au = $('auto'); if (au) au.onclick = () => { L.auto = !L.auto; if (!L.auto) L.bets.forEach((b) => { b.shown = new Set([...b.marked]); }); toast(L.auto ? 'Tus frijoles caen solos al cantar tus cartas' : 'Ahora tú pones los frijoles tocando la carta', false, I.bolt); render(SIM.state()); };
+    $('morral').onclick = () => openDrawer(!L.drawerOpen);
+  }
+
+  function shout(s) {
+    if (L.won) return;
+    const b = L.bets.find((x) => isFull(x, s));
+    if (!b) { const best = Math.max(...L.bets.map((x) => markedOf(x, s).length)); toast('Aún no · te faltan ' + (16 - best) + ' cartas por marcar', true); return; }
+    const jack = s.drawnCount <= SIM.JACK_MAX;
+    L.won = { bet: b, amount: s.big + (jack ? s.jackpot : 0), jack };
+    L.balance += L.won.amount; flashBal('up'); coins($('potBig'), $('bal'), 14); if (jack) coins($('jackAmt'), $('bal'), 14);
+    SIM.announce({ round: s.round, big: { k: s.drawnCount, winner: { alias: 'María L.', terminal: TNUM, online: false, folio: b.folio, isMe: true }, cards: b.cards.slice() } });   // la partida termina aquí en todas las pantallas
+    $('ovT').className = 't win'; $('ovT').textContent = '¡Buenas!'; $('ovR').textContent = '¡Ganaste!'; $('ovR').classList.remove('hide');
+    $('ovA').textContent = SIM.money(L.won.amount); $('ovW').textContent = 'Con tu tabla «' + b.name + '» · folio ' + b.folio + ' · ' + s.drawnCount + ' cartas' + (jack ? ' · ¡y cayó el pozo!' : '') + (L.small ? ' · más el premio chico' : '');
+    $('ovS').textContent = 'Abonado a tu saldo de lotería · pásalo a tu cuenta o retira en caja';
+    FX.buenas(jack); FX.confetti({ count: jack ? 380 : 220, duration: jack ? 7000 : 4500 });
+    $('ov').classList.remove('lose'); $('ov').classList.add('on'); $('ov').classList.add('banner'); $('sbanner').classList.remove('on'); render(s); updatePrizes(s);
+  }
+  $('ov').onclick = () => { if (!$('ov').classList.contains('banner')) $('ov').classList.remove('on'); };
+
+  // ── fichas de información (al tocar) ──
+  function sheet(h) { $('sheetCard').innerHTML = h; $('sheet').classList.add('on'); }
+  function closeSheet() { $('sheet').classList.remove('on'); }
+  $('sheet').onclick = (e) => { if (e.target === $('sheet')) closeSheet(); const a = e.target.closest('[data-act]'); if (!a) return; const act = a.dataset.act; closeSheet(); if (act === 'morral') openDrawer(true); if (act === 'topup') topUp(); if (act === 'help') infoHelp(); };
+  const okBtn = (txt) => `<button class="btn gold" data-act="ok">${I.check} ${txt || 'Entendido'}</button>`;
+  function lastJackpot(s) { for (let j = s.round - 1; j >= Math.max(0, s.round - 600); j--) { const q = SIM.round(j); if (q.jackpotHit) return { ago: s.round - j, q }; } return null; }
+  function infoJackpot(s) {
+    const lj = lastJackpot(s), n = L.bets.length;
+    sheet(`<h2>${I.star} Pozo acumulado</h2><div class="big">${SIM.money(s.jackpot)}</div><div class="b">
+      <p><b>¿Cómo se gana?</b> Llenando una tabla en <b>${SIM.JACK_MAX} cartas o menos</b>. Quien lo logre se lleva el premio grande <b>y además todo el pozo</b>.</p>
+      <p>Crece con el <b>5 %</b> de cada tabla vendida en toda la red (sala y en línea) y <b>nunca baja</b> hasta que alguien lo gana. Entonces vuelve a empezar y a crecer.</p>
+      ${lj ? `<div class="kv"><span>Última vez que cayó</span><b>hace ${lj.ago} partida${lj.ago > 1 ? 's' : ''} · ${esc(lj.q.winner.alias)} ${lj.q.winner.terminal ? '(T-' + lj.q.winner.terminal + ')' : '(en línea)'} en ${lj.q.k} cartas</b></div>` : ''}
+      <div class="kv"><span>Tus tablas en esta partida</span><b>${n} de ${MAX_BETS} · cada tabla es una oportunidad</b></div>
+    </div><div class="acts">${okBtn()}${s.phase === 'lobby' && n < MAX_BETS ? `<button class="btn ghost" data-act="morral">${I.bag} Apostar una tabla</button>` : ''}</div>`);
+  }
+  function infoPrizes(s) {
+    const pct = Math.round(SIM.SMALL_PCT * 100);
+    const pats = [['Línea', [4, 5, 6, 7]], ['Diagonal', [0, 5, 10, 15]], ['Cuadro chico', [5, 6, 9, 10]], ['Esquinas', [0, 3, 12, 15]]];
+    sheet(`<h2>${I.coins} Premios de esta partida</h2><div class="b">
+      <div class="pr2"><div><span class="k">Premio grande · tabla llena</span><div class="big">${SIM.money(s.big)}</div></div><div><span class="k">Premio chico · 4 figuras</span><div class="big sm">${SIM.money(s.small)}</div></div></div>
+      <p>El bote es el <b>90 %</b> de lo vendido (<b>${s.sold.toLocaleString('en-US')} tablas × ${PS}</b>${s.phase === 'lobby' ? ', y sigue creciendo hasta que cierre la venta' : ''}). Se parte en dos: <b>${pct} %</b> para el <b>chico</b> y <b>${100 - pct} %</b> para el <b>grande</b>.</p>
+      <p><b>Chico:</b> para el primero que junte <b>4 figuras</b> en cualquiera de estas formas (el sistema lo valida solo, no hay que gritar):</p>
+      <div class="pats">${pats.map(([n, c]) => `<div class="pat"><div class="pg">${Array.from({ length: 16 }, (_, i) => `<i class="${c.includes(i) ? 'on' : ''}"></i>`).join('')}</div><span>${n}</span></div>`).join('')}</div>
+      <p><b>Grande:</b> para el primero que llene la tabla (las 16). Si además fue en <b>${SIM.JACK_MAX} cartas o menos</b>, se lleva también el pozo acumulado (${SIM.money(s.jackpot)}). Si dos lo logran con la misma carta, se reparte.</p>
+      ${s.smallDone ? `<div class="kv"><span>Premio chico de esta partida</span><b>${L.small ? 'tuyo' : esc(smallWinnerText(s))}</b></div>` : ''}
+    </div><div class="acts">${okBtn()}${s.phase === 'lobby' && L.bets.length < MAX_BETS ? `<button class="btn ghost" data-act="morral">${I.bag} Apostar una tabla</button>` : ''}</div>`);
+  }
+  function infoCard(n, s) {
+    const k = s.drawn.indexOf(n), mine = L.bets.filter((b) => b.cards.includes(n)), unmarked = mine.filter((b) => k >= 0 && !L.auto && !b.marked.has(n));
+    sheet(`<h2>${I.mic} ${esc(SIM.NAMES[n])}</h2><div class="cardv"><img src="${SIM.card(n)}"><div class="b"><div class="verse">«${esc(SIM.VERSES[n])}»</div>
+      <div class="kv" style="margin-top:10px"><span>En esta partida</span><b>${k >= 0 ? 'salió como carta #' + (k + 1) : 'todavía no sale'}</b></div>
+      <div class="kv"><span>La tienes en</span><b>${mine.length ? mine.map((b) => esc(b.name)).join(', ') : 'ninguna de tus tablas'}</b></div>
+      ${unmarked.length ? `<p style="margin-top:8px"><b>¡Ponle su frijol!</b> Tócala en tu tabla ${esc(unmarked[0].name)}.</p>` : ''}</div></div><div class="acts">${okBtn()}</div>`);
+  }
+  function infoBalance() {
+    sheet(`<h2>${I.wallet} Tu saldo en lotería</h2><div class="big">${money(Math.max(0, L.balance))}</div><div class="b">
+      <div class="kv"><span>Cuenta del casino (tarjeta ••••4821)</span><b>${money(L.casino)}</b></div>
+      <div class="kv"><span>Cada tabla cuesta</span><b>${PS}</b></div>
+      <p style="margin-top:10px">Tus premios se abonan aquí al instante. Puedes <b>pasar saldo</b> desde tu cuenta del casino o <b>cargar y retirar en caja</b> con tu tarjeta. Esta terminal no acepta efectivo.</p>
+    </div><div class="acts">${okBtn()}<button class="btn ghost" data-act="topup" ${L.casino < 500 ? 'disabled style="opacity:.4"' : ''}>${I.wallet} Pasar $500 de mi cuenta</button></div>`);
+  }
+  function topUp() { if (L.casino < 500) return toast('Tu cuenta del casino no tiene suficiente', true); L.casino -= 500; L.balance += 500; flashBal('up'); FX.beep(true); toast('Pasaste $500.00 a tu saldo de lotería', false, I.wallet); }
+  function infoFolio(b, s) {
+    sheet(`<h2>${I.receipt} Tu comprobante</h2><div class="b">
+      <div class="kv"><span>Folio</span><b>${b.folio}</b></div><div class="kv"><span>Tabla</span><b>${esc(b.name)}</b></div><div class="kv"><span>Partida</span><b>#${s.roundNo.toLocaleString('en-US')}</b></div><div class="kv"><span>Importe</span><b>${PS} · pagado de tu saldo de lotería</b></div><div class="kv"><span>Terminal</span><b>${TID} · Sala Monterrey</b></div>
+      <p style="margin-top:10px">Es tu <b>constancia de participación</b>. Puedes imprimirla en caja o verla en tu historial. Mientras la venta siga abierta puedes retirar la apuesta y se te devuelve el importe.</p>
+    </div><div class="acts">${okBtn()}</div>`);
+  }
+  function infoPhases(s) {
+    const cur = s.phase, ph = [
+      ['lobby', I.coins, 'Apuestas abiertas', 'Arrastra tus tablas al centro', SIM.LOBBY + ' s'],
+      ['start', I.lock, '¡Iniciamos!', 'Se cierra la venta y el cantor avisa', '3 s'],
+      ['running', I.mic, 'Corre y se va', 'Sale una carta cada ' + SIM.INTERVAL + ' s · marca las tuyas', 'hasta que alguien llene'],
+      ['results', I.trophy, '¡Buenas! y resultados', 'Se paga al ganador y se prepara la siguiente', '~' + Math.round(SIM.CYCLE / 60) + ' min por partida'],
+    ];
+    sheet(`<h2>${I.clock} Así va cada partida</h2><div class="b">${ph.map(([id, ic, t, d, dur]) => `<div class="phase ${cur === id ? 'cur' : ''}"><span class="dot"></span>${ic}<span><b>${t}</b> · ${d}</span><span class="d">${dur}</span></div>`).join('')}
+      <p style="margin-top:10px">${cur === 'lobby' ? 'Ahora mismo la venta está <b>abierta</b>: cierra en <b>' + SIM.mmss(s.lobbyLeft) + '</b>.' : cur === 'running' ? 'Ahora mismo <b>van ' + s.drawnCount + ' cartas</b> cantadas.' : 'La siguiente venta abre en <b>' + SIM.mmss(s.nextIn) + '</b>.'}</p></div><div class="acts">${okBtn()}<button class="btn ghost" data-act="help">${I.help} ¿Cómo se juega?</button></div>`);
+  }
+  function infoHelp() {
+    sheet(`<h2>${I.help} ¿Cómo se juega?</h2><div class="steps">
+      <div class="step"><span class="ic">${I.bag}</span><span><b class="tt">1 · Arma tus tablas</b>Abre tu morral (abajo a la derecha). Toca una tabla para cambiar sus cartas, su nombre o su fondo. Hasta ${MAX_TABLAS} tablas.</span></div>
+      <div class="step"><span class="ic">${I.hand}</span><span><b class="tt">2 · Apuéstalas</b>Arrástralas al centro mientras diga <i>APUESTAS ABIERTAS</i>. Cada una cuesta ${PS}. Si la venta está cerrada, se apartan para la siguiente.</span></div>
+      <div class="step"><span class="ic">${I.bolt}</span><span><b class="tt">3 · Pon tus frijoles</b>Cuando el cantor cante una carta tuya, tócala para marcarla. Si prefieres, activa <i>Auto-marcar</i> y caen solos.</span></div>
+      <div class="step"><span class="ic">${I.trophy}</span><span><b class="tt">4 · Dos premios</b>Con <b>4 figuras</b> (línea, diagonal, cuadro o esquinas) ganas el <b>premio chico</b>, se valida solo. Con las 16 marcadas se enciende el botón: tócalo y ganas el <b>premio grande</b>; si fue en ${SIM.JACK_MAX} cartas o menos, también el pozo.</span></div>
+    </div><div class="b"><p style="margin-top:10px;font-size:14px;color:var(--mut)">Tus premios se abonan a tu saldo de lotería; pásalos a tu cuenta del casino o retira en caja. Juego para mayores de 18 años · juega con responsabilidad.</p></div><div class="acts">${okBtn('¡Listo, a jugar!')}</div>`);
+  }
+  $('jackBtn').onclick = () => infoJackpot(SIM.state());
+  $('balBtn').onclick = () => infoBalance();
+  $('helpBtn').onclick = () => infoHelp();
+  $('pill').onclick = $('tm').onclick = () => infoPhases(SIM.state());
+  $('sndBtn').onclick = () => { L.muted = !L.muted; FX.setMuted(L.muted); $('sndBtn').innerHTML = L.muted ? I.mute : I.sound; $('sndBtn').classList.toggle('off', L.muted); toast(L.muted ? 'Sonido apagado en esta terminal' : 'Sonido encendido', false, L.muted ? I.mute : I.sound); };
+  // recordatorio giratorio bajo el pozo
+  let jrI = 0;
+  function jackReminder() {
+    const s = SIM.state(), lj = lastJackpot(s), n = L.bets.length;
+    const msgs = ['Tabla llena en ' + SIM.JACK_MAX + ' cartas o menos… ¡y es tuyo!', 'Crece con cada tabla vendida en toda la red', lj ? 'Última vez que cayó: hace ' + lj.ago + ' partida' + (lj.ago > 1 ? 's' : '') : 'Nunca baja hasta que alguien lo gana', n ? 'Tienes ' + n + ' tabla' + (n > 1 ? 's' : '') + ' en juego para ganarlo' : 'Apuesta una tabla y participa por él', 'Toca aquí para saber cómo ganarlo'];
+    $('jackMsg').innerHTML = '<span>' + esc(msgs[jrI++ % msgs.length]) + '</span>';
+  }
+  setInterval(jackReminder, 4500); jackReminder();
+
+  // ── morral: abrir, listar, arrastrar ──
+  function openDrawer(on) { L.drawerOpen = on; $('drawer').classList.toggle('on', on); if (on) renderDrawer(); }
+  function renderDrawer() {
+    $('dCount').textContent = T.length + ' DE ' + MAX_TABLAS + ' TABLAS · ' + L.bets.length + ' APOSTADA' + (L.bets.length !== 1 ? 'S' : '') + ' · TOCA PARA EDITAR · ARRASTRA AL CENTRO PARA APOSTAR';
+    $('dList').innerHTML = T.map((t, i) => { const bet = L.bets.some((b) => b.tid === t.id), q = L.queue.includes(t.id); return `<div class="thumb" data-id="${t.id}" style="--i:${i}"><div class="nm">${esc(t.name)}</div>${miniHTML(t.cards, t.bg)}${bet ? '<span class="st ok tag">APOSTADA</span>' : q ? '<span class="st q tag">APARTADA</span>' : ''}${t.auto ? '<span class="st au au">' + I.repeat + ' AUTO</span>' : ''}</div>`; }).join('');
+    $('dNew').classList.toggle('off', T.length >= MAX_TABLAS);
+  }
+  $('dClose').onclick = () => openDrawer(false);
+  $('dNew').onclick = () => { if (T.length >= MAX_TABLAS) return; const used = new Set(T.map((t) => t.bg)); const free = BG_PICK.filter((b) => !used.has(b)); const t = { id: 'T' + (nextId++), name: 'Tabla ' + (T.length + 1), cards: rand16(), bg: (free.length ? free : BG_PICK)[Math.floor(Math.random() * (free.length ? free.length : BG_PICK.length))] }; T.push(t); save(); renderDrawer(); openEditor(t.id); };
+  let drag = null;
+  $('dList').addEventListener('pointerdown', (e) => {
+    const th = e.target.closest('.thumb'); if (!th) return;
+    drag = { tid: th.dataset.id, el: th, x0: e.clientX, y0: e.clientY, moved: false, ghost: null };
+    try { th.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  const bodyRect = () => document.body.getBoundingClientRect();
+  function inRect(e, r) { return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; }
+  function overArena(e) { return inRect(e, $('arena').getBoundingClientRect()) && !inRect(e, $('drawer').getBoundingClientRect()); }
+  addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 8) {
+      drag.moved = true; drag.el.classList.add('lift');
+      const t = byId(drag.tid); const g = document.createElement('div'); g.className = 'dragghost'; g.innerHTML = miniHTML(t.cards, t.bg); document.body.appendChild(g); drag.ghost = g;
+    }
+    if (drag.ghost) { const b = bodyRect(), k = b.width / 1280; drag.ghost.style.left = ((e.clientX - b.left) / k - 85) + 'px'; drag.ghost.style.top = ((e.clientY - b.top) / k - 110) + 'px'; $('arena').classList.toggle('drop', overArena(e)); }
+  });
+  function endDrag(e, cancel) {
+    if (!drag) return; const d = drag; drag = null;
+    d.el.classList.remove('lift'); if (d.ghost) d.ghost.remove(); $('arena').classList.remove('drop');
+    if (cancel) return;
+    if (!d.moved) openEditor(d.tid);
+    else if (overArena(e)) { tryBet(d.tid, SIM.state()); renderDrawer(); }
+  }
+  addEventListener('pointerup', (e) => endDrag(e, false));
+  addEventListener('pointercancel', (e) => endDrag(e, true));
+
+  // ── editor: tabla al centro, fondo elegible arriba, carrusel circular de stickers abajo ──
+  const E = { cards: null, name: '', bg: 'table_2', sel: null, pick: null, dirty: false, delArmed: 0 };
+  const ITEM = 80, N = 54, STRIP_N = 3;  // ancho de cada sticker (70 + gap 10); 3 copias para que sea circular
+  let carX = 0, carAnim = false;
+  function openEditor(tid) { const t = byId(tid); if (!t) return; L.edit = tid; E.cards = t.cards.slice(); E.name = t.name; E.bg = t.bg; E.sel = null; E.pick = null; E.dirty = false; E.delArmed = 0; $('eName').value = t.name; $('eDel').innerHTML = I.trash + ' Eliminar esta tabla'; buildStrip(); renderEditor(); $('editor').classList.add('on'); requestAnimationFrame(() => setCar(-(N * ITEM) + ($('carWin').clientWidth - ITEM) / 2, false)); }
+  function closeEditor(saved) { $('editor').classList.remove('on'); L.edit = null; if (!saved && E.dirty) toast('Cambios descartados · tu tabla quedó como estaba', false, I.close); renderDrawer(); render(SIM.state()); }
+  function place(i, n) {  // pone la carta n en la casilla i; si ya estaba en otra casilla, las intercambia
+    const j = E.cards.indexOf(n); if (j === i) return;
+    if (j >= 0) E.cards[j] = E.cards[i];
+    E.cards[i] = n; E.dirty = true; E.sel = null; E.pick = null; FX.tick(); renderEditor(); const c = $('eBoard').querySelectorAll('.cell')[i]; if (c) c.classList.add('swap'); if (j >= 0) { const d = $('eBoard').querySelectorAll('.cell')[j]; if (d) d.classList.add('swap'); }
+  }
+  function renderEditor() {
+    const t = byId(L.edit); if (!t) return;
+    $('eBoard').innerHTML = `<div class="board"${bgStyle(E.bg)}><div class="grid">${E.cards.map((n, i) => `<div class="cell ${E.sel === i ? 'sel' : ''}" data-i="${i}"><span class="pic"><img src="${SIM.card(n)}"></span></div>`).join('')}</div></div>`;
+    $('eBoard').querySelectorAll('.cell').forEach((el) => el.onclick = () => { const i = +el.dataset.i; if (E.pick !== null) place(i, E.pick); else { E.sel = E.sel === i ? null : i; renderEditor(); } });
+    $('swrow').innerHTML = `<span class="lbl">${I.palette} Fondo</span>` + BG_IDS.map((id) => `<div class="sw ${E.bg === id ? 'on' : ''}" data-bg="${id}" title="${BG[id].name}" style="background-image:url(${BG[id].sw})"></div>`).join('') + `<span class="swname">${bgOf(E.bg).name}</span>`;
+    $('swrow').querySelectorAll('.sw').forEach((el) => el.onclick = () => { if (E.bg === el.dataset.bg) return; E.bg = el.dataset.bg; E.dirty = true; FX.tick(); renderEditor(); });
+    $('strip').querySelectorAll('.stk').forEach((el) => { const n = +el.dataset.n; el.classList.toggle('used', E.cards.includes(n)); el.classList.toggle('pick', E.pick === n); });
+    $('eTip').innerHTML = E.pick !== null ? I.hand + ' Ahora toca la carta de tu tabla que quieres cambiar por <b>' + SIM.NAMES[E.pick] + '</b>' : E.sel !== null ? I.hand + ' Ahora toca el <b>sticker</b> que quieres poner en esa casilla' : I.hand + ' Arrastra un <b>sticker</b> hacia tu tabla y suéltalo sobre la carta que quieras cambiar';
+    $('eSaveCap').innerHTML = E.dirty ? '<b style="color:var(--gold-soft)">Tienes cambios sin guardar</b>' : 'Sin cambios todavía';
+    $('eSave').classList.toggle('dirty', E.dirty);
+    $('eDel').classList.toggle('off', T.length <= 1);
+    $('eAuto').classList.toggle('on', !!t.auto);
+  }
+  $('eAuto').onclick = () => { const t = byId(L.edit); if (t) setAuto(t.id, !t.auto); };
+  function buildStrip() { let h = ''; for (let c = 0; c < STRIP_N; c++) for (let n = 1; n <= N; n++) h += `<div class="stk" data-n="${n}"><img src="${SIM.card(n)}"></div>`; $('strip').innerHTML = h; }
+  function setCar(x, anim) { carX = x; const st = $('strip'); st.classList.toggle('anim', !!anim); st.style.transform = 'translateX(' + x + 'px)'; }
+  function normCar() { // mantener la vista dentro de la copia central sin que se note
+    const span = N * ITEM, w = $('carWin').clientWidth, center = -(span) + (w - ITEM) / 2;
+    while (carX > center + span / 2) setCar(carX - span, false);
+    while (carX < center - span / 2) setCar(carX + span, false);
+  }
+  let idleUntil = 0, lastTs = 0;
+  function autoCar(ts) { if ($('editor').classList.contains('on') && !sg && !carAnim && Date.now() > idleUntil) { const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0; setCar(carX - 24 * dt, false); normCar(); } lastTs = ts; requestAnimationFrame(autoCar); }
+  requestAnimationFrame(autoCar);
+  function nudgeCar(dir) { if (carAnim) return; carAnim = true; idleUntil = Date.now() + 5000; setCar(carX - dir * ITEM * 5, true); setTimeout(() => { carAnim = false; normCar(); }, 380); }
+  $('carL').onclick = () => nudgeCar(-1); $('carR').onclick = () => nudgeCar(1);
+  // gesto en el carrusel: horizontal = girar; hacia arriba = arrastrar el sticker
+  let sg = null;
+  $('carWin').addEventListener('pointerdown', (e) => { idleUntil = Date.now() + 6000; const st = e.target.closest('.stk'); sg = { x0: e.clientX, y0: e.clientY, startX: carX, mode: null, n: st ? +st.dataset.n : null, el: st, ghost: null, over: null }; try { $('carWin').setPointerCapture(e.pointerId); } catch (err) {} });
+  addEventListener('pointermove', (e) => {
+    if (!sg) return; const dx = e.clientX - sg.x0, dy = e.clientY - sg.y0;
+    if (!sg.mode) { if (sg.n && dy < -14 && Math.abs(dy) > Math.abs(dx)) { sg.mode = 'drag'; const g = document.createElement('div'); g.className = 'stkghost'; g.innerHTML = `<img src="${SIM.card(sg.n)}">`; document.body.appendChild(g); sg.ghost = g; } else if (Math.abs(dx) > 10) sg.mode = 'swipe'; }
+    if (sg.mode === 'swipe') { const k = bodyRect().width / 1280; setCar(sg.startX + dx / k, false); }
+    if (sg.mode === 'drag') {
+      const b = bodyRect(), k = b.width / 1280; sg.ghost.style.left = ((e.clientX - b.left) / k - 55) + 'px'; sg.ghost.style.top = ((e.clientY - b.top) / k - 90) + 'px';
+      const el = document.elementFromPoint(e.clientX, e.clientY), cell = el && el.closest('#eBoard .cell');
+      if (sg.over && sg.over !== cell) sg.over.classList.remove('over'); if (cell) cell.classList.add('over'); sg.over = cell || null;
+    }
+  });
+  function endSg(e, cancel) {
+    if (!sg) return; const g = sg; sg = null; if (g.ghost) g.ghost.remove(); if (g.over) g.over.classList.remove('over');
+    if (cancel) return;
+    if (g.mode === 'drag') { if (g.over) place(+g.over.dataset.i, g.n); }
+    else if (g.mode === 'swipe') normCar();
+    else if (g.n) { if (E.sel !== null) place(E.sel, g.n); else { E.pick = E.pick === g.n ? null : g.n; renderEditor(); } }
+  }
+  addEventListener('pointerup', (e) => endSg(e, false)); addEventListener('pointercancel', (e) => endSg(e, true));
+  $('eName').oninput = () => { E.name = $('eName').value.trim() || 'Tabla'; E.dirty = true; renderEditor(); };
+  $('eSave').onclick = () => { const t = byId(L.edit); if (!t) return; t.cards = E.cards.slice(); t.name = E.name; t.bg = E.bg; save(); FX.beep(true); toast('«' + t.name + '» guardada'); closeEditor(true); };
+  $('eClose').onclick = () => closeEditor(false);
+  $('eDel').onclick = () => { const t = byId(L.edit); if (T.length <= 1) return; if (Date.now() - E.delArmed > 4000) { E.delArmed = Date.now(); $('eDel').innerHTML = I.trash + ' ¿Seguro? Toca otra vez para eliminar'; setTimeout(() => { if (L.edit) $('eDel').innerHTML = I.trash + ' Eliminar esta tabla'; }, 4000); return; } T = T.filter((x) => x.id !== t.id); save(); toast('«' + t.name + '» eliminada del morral', false, I.trash); E.dirty = false; closeEditor(true); };
+
+  // ── modo demostración (operador): provoca los premios en la siguiente partida para verlos en vivo ──
+  // Ctrl+Shift+1 = tu tabla «Demo» hace línea en la carta 4 (premio chico) · Ctrl+Shift+2 = además tabla llena en la 16 (grande + pozo)
+  // También por URL: terminal.html?demo=chico | ?demo=grande  (abrir-sala.cmd chico|grande)
+  function demoArm(mode) { L.demo = mode; const s = SIM.state(); toast('Demo armada: ' + (mode === 'grande' ? 'línea en la carta 4 y tabla llena en la 16 (cae el pozo)' : 'línea en la carta 4') + (s.phase === 'lobby' ? ' · en esta partida' : ' · en la siguiente partida'), false, I.bolt); if (s.phase === 'lobby') demoApply(s); }
+  function demoApply(s) {
+    if (!L.demo) return; const order = SIM.round(s.round).order;
+    const rest = order.slice(30, 54);   // cartas que salen tarde: así la tabla «chico» no se llena antes del ganador
+    const cards = L.demo === 'grande' ? order.slice(0, 16) : order.slice(0, 4).concat(rest.slice(0, 12));
+    let t = byId('TDEMO'); if (!t) { t = { id: 'TDEMO', name: 'Demo', cards, bg: 'table_4' }; if (T.length >= MAX_TABLAS) T[T.length - 1] = t; else T.push(t); } else t.cards = cards;
+    save(); L.auto = true; L.demo = null;
+    const r = doBet('TDEMO', s, true); if (r) toast('Demo: no se pudo apostar · ' + r, true); else { render(s); if (L.drawerOpen) renderDrawer(); }
+  }
+  addEventListener('keydown', (e) => { if (e.ctrlKey && e.shiftKey && (e.code === 'Digit1' || e.code === 'Digit2')) { e.preventDefault(); demoArm(e.code === 'Digit1' ? 'chico' : 'grande'); } });
+  { const d = Q.get('demo'); if (d === 'chico' || d === 'grande') setTimeout(() => demoArm(d), 800); }
+
+  // pantallas de sistema (en producción las dispara el latido con el gateway de sala): terminal.html?sys=offline | ?sys=falla
+  // ?locked=1 : la terminal espera a que el jugador pase su tarjeta (la sala 3D avisa por postMessage)
+  let bloqueada = Q.get('locked') === '1';
+  if (bloqueada) { $('cardLock').className = 'card on'; $('cardLock').innerHTML = `<div class="tc"></div><h1>Pasa tu tarjeta del casino</h1><p>Acércala al <b>lector</b> de la mesita para entrar con tu saldo. Esta terminal no acepta efectivo.</p><div class="k">TERMINAL ${TID} · SALA MONTERREY</div>`; }
+  function entrar() {
+    if (!bloqueada) return; bloqueada = false;
+    const c = $('cardLock'); c.className = 'card on ok';
+    c.innerHTML = `<div class="tc"></div><h1>Hola, María L.</h1><p>Saldo en lotería <b>${money(L.balance)}</b> · cuenta del casino <b>${money(L.casino)}</b></p><div class="k">TARJETA ••••4821 · ${TID}</div>`;
+    FX.beep(true); setTimeout(() => FX.chaching && FX.chaching(), 160);
+    setTimeout(() => { c.className = 'card'; toast('Bienvenida · arrastra una tabla al centro para apostar', false, I.bag); }, 1700);
+  }
+  addEventListener('message', (e) => { const d = e && e.data; if (d && d.__ll_card) entrar(); });
+  // tocar el candado mete la tarjeta en el acto: si no, el aviso se come los toques del jugador
+  $('cardLock').addEventListener('pointerdown', () => { if (!bloqueada) return; try { parent.postMessage({ __ll_card_req: true }, '*'); } catch (err) {} });
+
+  { const sys = Q.get('sys');
+    if (sys === 'offline') { $('sys').className = 'sys on offline'; $('sys').innerHTML = `<div class="ic">${I.wifi}</div><h1>Sin conexión con la sala</h1><p>Tus tablas y tu saldo están a salvo. En cuanto regrese la conexión seguimos donde íbamos. Si tarda, un asistente viene en camino.</p><div class="k">RECONECTANDO… · TERMINAL ${TID} · 00:12</div>`; }
+    if (sys === 'falla') { $('sys').className = 'sys on falla'; $('sys').innerHTML = `<div class="ic">${I.wrench}</div><h1>Fuera de servicio</h1><p>Esta terminal necesita atención técnica. Tu saldo está protegido: pasa a otra mesa o a caja con tu tarjeta.</p><div class="k">CÓDIGO E-07 · TERMINAL ${TID} · YA AVISAMOS A SALA</div>`; } }
+
+  // ── reloj de la sala ──
+  let last = { round: -1, phase: '', drawnCount: -1 };
+  function tick() {
+    const s = SIM.state();
+    if (s.round !== L.round) { L.round = s.round; L.bets = []; L.won = null; L.lost = false; L.entered.clear(); L.small = null; L.smallMissed = false; L.smallAnnounced = false; L.lastSold = null; L.coinN = 0; $('ov').classList.remove('on'); $('ov').classList.remove('banner'); $('ov').classList.remove('lose'); autoBets(s); demoApply(s); if (L.drawerOpen) renderDrawer(); }
+    $('ses').textContent = SIM.mmss((Date.now() - L.started) / 1000);
+    const n = L.bets.length;
+    const pill = $('pill'), tm = $('tm');
+    if (s.phase === 'lobby') { pill.className = 'pill open'; pill.textContent = 'APUESTAS ABIERTAS'; setHTML($('msg'), `La partida <b>#${s.roundNo.toLocaleString('en-US')}</b> cierra en`); $('bar').style.display = ''; $('barFill').style.width = (100 * (1 - s.lobbyLeft / SIM.LOBBY)) + '%'; tm.textContent = SIM.mmss(s.lobbyLeft); tm.className = 't' + (s.lobbyLeft <= 5 ? ' urgent' : ''); tm.style.color = ''; const ns = $('nSold'); if (ns) ns.textContent = s.sold.toLocaleString('en-US'); const nl = $('nLeft'); if (nl) nl.textContent = SIM.mmss(s.lobbyLeft);
+      if (L.lastSold !== null && s.sold > L.lastSold && s.sold - L.lastSold < 80) { coins(ns || $('prizes'), $('potBig'), 1); if (++L.coinN % 3 === 0) coins(ns || $('prizes'), $('potSmall'), 1); } L.lastSold = s.sold; }
+    else if (s.phase === 'start') { const left = s.startLeft - 2; pill.className = 'pill live'; pill.textContent = 'APUESTAS CERRADAS'; setHTML($('msg'), left > 0 ? '<b>¡Iniciamos!</b> &nbsp;Atentos a sus tablas…' : '<b>¡Corre y se va con…!</b>'); $('bar').style.display = 'none'; tm.textContent = left > 0 ? String(Math.ceil(left)) : '¡Ya!'; tm.className = 't'; tm.style.color = 'var(--gold-soft)'; }
+    else if (s.phase === 'running') { const best = n ? Math.max(...L.bets.map((b) => markedOf(b, s).length)) : null; pill.className = 'pill live'; pill.textContent = 'EN JUEGO'; setHTML($('msg'), `<img class="flipin" src="${SIM.card(s.lastCard)}"> Salió <b>${SIM.NAMES[s.lastCard]}</b> · carta ${s.drawnCount} de 54`); $('bar').style.display = 'none'; tm.textContent = best === null ? '—' : best + ' / 16'; tm.className = 't'; tm.style.color = 'var(--gold-soft)'; }
+    else { pill.className = 'pill res'; pill.textContent = 'RESULTADOS'; setHTML($('msg'), `Siguiente partida en`); $('bar').style.display = 'none'; tm.textContent = SIM.mmss(s.nextIn); tm.className = 't'; tm.style.color = ''; }
+    // cuenta regresiva grande sobre la mesa
+    if (s.phase === 'start') { const left = Math.ceil(s.startLeft - 2); const key = left > 0 ? String(left) : 'go'; if (L.countKey !== key) { L.countKey = key; $('countOv').innerHTML = left > 0 ? `<div class="w">¡Iniciamos!</div><div class="n">${left}</div><div class="w2">Atentos a sus tablas</div>` : `<div class="w">¡Corre y se va con…!</div>`; } $('countOv').classList.add('on'); $('arena').classList.add('counting'); }
+    else { $('countOv').classList.remove('on'); $('arena').classList.remove('counting'); L.countKey = null; }
+    const ni = $('nextIn'); if (ni) ni.textContent = SIM.mmss(s.nextIn); const qn = $('qNext'); if (qn) qn.textContent = SIM.mmss(s.nextIn);
+    const changed = s.round !== last.round || s.phase !== last.phase || s.drawnCount !== last.drawnCount;
+    if (changed) {
+      if (s.phase === 'results' && !L.won && !L.lost) {
+        L.lost = true;
+        const full = L.bets.find((b) => isFull(b, s));
+        if (full) shout(s); // el sistema valida la tabla llena aunque no se haya gritado
+        else if (n) { const w = s.winner, who = (w.terminal ? 'la terminal T-' + w.terminal + ' · ' : 'un jugador en línea · ') + w.alias; $('ov').classList.remove('banner'); $('ovR').classList.add('hide');
+          if (L.small) { $('ov').classList.remove('lose'); $('ovT').className = 't semi'; $('ovT').textContent = 'Te llevaste el premio chico'; $('ovA').textContent = money(L.small.amount); $('ovW').innerHTML = esc(cap(L.small.pattern.n) + ' en «' + L.small.bet.name + '»') + ' · <span class="red">El grande lo ganó otro jugador: ' + esc(who) + '</span>'; FX.beep(true); }
+          else { $('ov').classList.add('lose'); $('ovT').className = 't lose'; $('ovT').textContent = 'Ganó otro jugador'; $('ovA').textContent = SIM.money(w.amount); $('ovW').textContent = cap(who) + ' · tabla llena en ' + s.k + ' cartas · no es tu premio'; }   // rojo y sin sonido
+          $('ovS').textContent = 'Siguiente partida en ' + SIM.mmss(s.nextIn); $('ov').classList.add('on'); }
+      }
+      render(s); checkSmall(s); announceSmall(s);
+    }
+    updatePrizes(s);
+    if (s.phase === 'results' && !L.won) $('ovS').textContent = 'Siguiente partida en ' + SIM.mmss(s.nextIn);
+    balOdo(Math.max(0, L.balance));
+    jackOdo(s.jackpot);
+    last = { round: s.round, phase: s.phase, drawnCount: s.drawnCount };
+  }
+  setInterval(tick, 200); tick();
+  (function(){var W=1280,H=800;function fit(){var s=Math.min(innerWidth/W,innerHeight/H),b=document.body.style;b.transform='scale('+s+')';b.left=((innerWidth-W*s)/2)+'px';b.top=((innerHeight-H*s)/2)+'px';}addEventListener('resize',fit);fit();})();
+</script>
+</body></html>

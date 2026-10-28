@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/png" href="../../../favicon.png">
+<title>Pantalla central · portrait · simulación</title>
+<link href="https://fonts.googleapis.com/css2?family=Yeseva+One&family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --felt:#123F2B; --felt-deep:#0C2E1F; --felt-dark:#082016; --gold:#C9A24B; --gold-soft:#E6CE85; --gold-deep:#9C7A30;
+         --cream:#F6EFDD; --ink:#221A0E; --text:#ECE6D2; --mut:#A9BCA3; --red:#B23A2E; --green:#3E8C63; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ width:100%; height:100%; overflow:hidden; background:#0A2618; }
+  body{ width:1080px; height:1920px; position:absolute; left:0; top:0; transform-origin:0 0; overflow:hidden;
+    font-family:'IBM Plex Sans',sans-serif; color:var(--text);
+    background: radial-gradient(1000px 700px at 50% -6%, #2C7A55, transparent 62%), radial-gradient(1200px 900px at 50% 108%, #061A11, transparent 60%), linear-gradient(180deg,#14492F,#0C2E1F 70%,#0A2618);
+    display:grid; grid-template-rows:104px auto auto 1fr 64px; gap:22px; }
+  body::after{ content:""; position:fixed; inset:0; pointer-events:none; opacity:.45; mix-blend-mode:soft-light;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .display{ font-family:'Yeseva One',serif; font-weight:400; }
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:15px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold-soft); font-weight:600; }
+
+  header{ display:flex; align-items:center; justify-content:space-between; padding:0 44px; border-bottom:1.5px dashed rgba(201,162,75,.5); background:rgba(8,32,22,.55); }
+  .brand{ display:flex; align-items:center; gap:14px; }
+  .brand .logo{ width:52px; height:52px; border:2px solid var(--gold); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--gold-soft); font-family:'Yeseva One',serif; font-size:26px; }
+  .brand h1{ font-size:28px; color:var(--gold-soft); line-height:1; }
+  .brand small{ display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.2em; color:var(--mut); margin-top:6px; }
+  .pill{ display:inline-flex; align-items:center; gap:10px; font-family:'IBM Plex Mono',monospace; font-size:15px; letter-spacing:.16em; font-weight:600; white-space:nowrap; padding:8px 16px; border-radius:30px; }
+  .pill::before{ content:""; width:12px; height:12px; border-radius:50%; background:currentColor; box-shadow:0 0 14px currentColor; animation:blink 1.2s ease-in-out infinite; }
+  .pill.lobby{ color:#9BE3B5; background:rgba(45,106,72,.45); } .pill.running{ color:#FF8A7A; background:rgba(107,43,34,.45); } .pill.results{ color:var(--gold-soft); background:rgba(90,74,30,.5); }
+  @keyframes blink{ 50%{ opacity:.35 } }
+  .clock{ text-align:right; }
+  .clock .t{ font-family:'IBM Plex Mono',monospace; font-size:34px; color:var(--cream); line-height:1; }
+  .clock .f{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--mut); letter-spacing:.1em; margin-top:6px; }
+
+  .marquee{ display:flex; justify-content:space-between; padding:0 6px; position:absolute; left:18px; right:18px; }
+  .marquee i{ width:14px; height:14px; border-radius:50%; background:#5A4A1E; animation:bulb 1.1s steps(1) infinite; }
+  .marquee i:nth-child(odd){ animation-delay:.55s; }
+  @keyframes bulb{ 0%,49%{ background:#FFF1B8; box-shadow:0 0 14px 3px rgba(255,230,150,.9) } 50%,100%{ background:#6B5A28; box-shadow:none } }
+
+  .jack{ margin:0 44px; border-radius:26px; padding:22px 36px 26px; text-align:center; position:relative;
+    background: radial-gradient(900px 400px at 50% 0%, #4A3A14, transparent 70%), linear-gradient(180deg,#2E2510,#1A160C);
+    border:2px solid var(--gold); animation:breathe 3s ease-in-out infinite; }
+  .jack.won{ animation:breathe .6s ease-in-out infinite; }
+  @keyframes breathe{ 0%,100%{ box-shadow:0 0 0 1px rgba(230,206,133,.35), 0 0 40px rgba(201,162,75,.25), 0 30px 70px -30px rgba(0,0,0,.9) } 50%{ box-shadow:0 0 0 1px rgba(230,206,133,.8), 0 0 110px rgba(230,206,133,.55), 0 30px 70px -30px rgba(0,0,0,.9) } }
+  .jack .lbl{ display:flex; align-items:center; justify-content:center; gap:14px; }
+  .jack .lbl .eyebrow{ font-size:20px; letter-spacing:.3em; }
+  .coin{ width:44px; height:44px; border-radius:50%; background:radial-gradient(circle at 36% 32%,#F1DC9A,#C9A24B 70%,#9C7A30); border:2px solid #E6CE85; color:#5A3F12; font-family:'Yeseva One',serif; text-align:center; line-height:40px; font-size:22px; box-shadow:0 4px 12px rgba(0,0,0,.5); animation:spin 6s linear infinite; }
+  @keyframes spin{ to{ transform:rotateY(360deg) } }
+  .jack .amt{ font-family:'Yeseva One',serif; font-size:190px; line-height:1.02; letter-spacing:-3px; margin-top:6px; white-space:nowrap; justify-content:center;
+    filter:drop-shadow(0 0 22px rgba(230,206,133,.55)) drop-shadow(0 6px 0 rgba(90,63,18,.9)); }
+  .jack .amt .odo-v{ background:linear-gradient(90deg,#9C7A30 0%,#E6CE85 22%,#FFF6CC 50%,#E6CE85 78%,#9C7A30 100%); background-size:220% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent; animation:shimmer 3.2s linear infinite; }
+  .pot .amt{ justify-content:center; }
+  @keyframes shimmer{ 0%{ background-position:220% 0 } 100%{ background-position:-220% 0 } }
+  .amt.rolling{ filter:brightness(1.25) drop-shadow(0 0 30px rgba(230,206,133,.9)) drop-shadow(0 6px 0 rgba(90,63,18,.9)); }
+  .pot .amt.rolling{ text-shadow:0 0 40px rgba(246,239,221,.75), 0 4px 0 rgba(0,0,0,.45); }
+  .jack .how{ font-size:25px; color:var(--cream); margin-top:8px; }
+  .jack .how b{ color:var(--gold-soft); }
+  .jack .meta{ font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.14em; color:var(--mut); margin-top:10px; text-transform:uppercase; }
+  .jack .hit{ display:none; position:absolute; inset:0; border-radius:26px; background:rgba(26,22,12,.92); align-items:center; justify-content:center; flex-direction:column; gap:8px; }
+  .jack.won .hit{ display:flex; }
+  .jack .hit .big{ font-family:'Yeseva One',serif; font-size:96px; color:var(--gold-soft); text-shadow:0 0 40px rgba(230,206,133,.8); }
+  .jack .hit .who{ font-size:30px; color:var(--cream); }
+
+  .pot{ margin:0 44px; border-radius:22px; padding:18px 36px 18px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:4px;
+    background:linear-gradient(180deg,#143E2C,#0C2E1F); border:1.5px solid rgba(201,162,75,.7); box-shadow:0 20px 50px -24px rgba(0,0,0,.8), 0 0 30px rgba(201,162,75,.12); }
+  .pot .amt{ font-family:'Yeseva One',serif; font-size:124px; color:var(--cream); line-height:1; letter-spacing:-2px; white-space:nowrap; text-shadow:0 0 24px rgba(246,239,221,.35), 0 4px 0 rgba(0,0,0,.45); }
+  .pot .amt .c{ color:var(--gold); font-size:76px; vertical-align:top; margin-right:4px; }
+  .pot .split{ font-family:'IBM Plex Mono',monospace; font-size:24px; color:var(--cream); letter-spacing:.06em; margin-top:2px; } .pot .split b{ color:var(--gold-soft); font-weight:600; font-size:30px; } .pot .split span{ display:block; font-size:16px; color:var(--mut); letter-spacing:.14em; margin-top:2px; }
+  .pot .side{ text-align:center; }
+  .pot .side .eyebrow{ font-size:14px; }
+  .pot .side .v{ font-family:'IBM Plex Mono',monospace; font-size:21px; color:var(--cream); margin-top:4px; line-height:1.4; }
+  .pot .side .v b{ color:var(--gold-soft); font-weight:600; }
+
+  .cantor{ margin:0 44px 10px; display:grid; grid-template-columns:auto 1fr; gap:34px; align-items:center; min-height:0; position:relative; }
+  .bigc{ background:#fff; border-radius:26px; padding:20px; box-shadow:0 30px 70px -30px rgba(0,0,0,.9), 0 0 0 3px rgba(201,162,75,.6); height:100%; max-height:900px; aspect-ratio:454/695; display:flex; align-self:center; }
+  .bigc img{ display:block; height:100%; width:100%; object-fit:contain; border-radius:12px; }
+  .bigc.pop{ animation:pop .55s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes pop{ 0%{ transform:scale(.6) rotate(-8deg); opacity:0 } 100%{ transform:none; opacity:1 } }
+  .who .mic{ width:70px; height:70px; border-radius:50%; border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:32px; background:rgba(12,46,31,.7); margin-bottom:14px; }
+  .who .name{ font-size:50px; color:var(--cream); line-height:1; }
+  .who{ min-width:0; }
+  .who .verse{ font-family:'Yeseva One',serif; font-style:italic; color:var(--gold-soft); font-size:30px; margin-top:0; min-height:40px; }
+  .who .cardname{ font-family:'Yeseva One',serif; font-size:60px; color:var(--cream); line-height:1.05; margin-top:10px; text-shadow:0 0 30px rgba(230,206,133,.45), 0 4px 0 rgba(0,0,0,.4); animation:namePop .5s cubic-bezier(.2,1.4,.4,1); }
+  .who .cardname b{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:26px; color:var(--felt-dark); background:var(--gold-soft); border-radius:12px; padding:4px 12px; vertical-align:middle; margin-right:12px; display:inline-block; transform:translateY(-8px); }
+  @keyframes namePop{ 0%{ transform:translateX(-14px); opacity:0 } 100%{ transform:none; opacity:1 } }
+  .who .quote{ margin-top:14px; font-family:'Yeseva One',serif; font-style:italic; font-size:25px; color:var(--text); line-height:1.3; min-height:72px; }
+  .who .n{ margin-top:26px; display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:18px; letter-spacing:.2em; color:var(--felt-dark); background:var(--gold-soft); padding:10px 18px; border-radius:10px; font-weight:600; }
+  .who .cd{ font-family:'IBM Plex Mono',monospace; font-size:120px; color:var(--cream); line-height:1; margin-top:10px; }
+  .who .go{ font-family:'Yeseva One',serif; font-style:italic; font-size:64px; color:var(--gold-soft); line-height:1.1; margin-top:6px; min-height:190px; display:flex; align-items:center; text-shadow:0 0 40px rgba(230,206,133,.8); animation:goPop .6s cubic-bezier(.2,1.4,.4,1); }
+  .who .go.n{ font-family:'IBM Plex Mono',monospace; font-style:normal; font-size:190px; color:var(--cream); }
+  @keyframes goPop{ 0%{ transform:scale(.4); opacity:0 } 100%{ transform:none; opacity:1 } }
+  .overlay{ display:none; position:fixed; left:44px; right:44px; top:760px; bottom:100px; z-index:20; border-radius:26px; overflow:hidden;
+    background: radial-gradient(800px 500px at 50% 0%, rgba(201,162,75,.35), transparent 70%), rgba(8,32,22,.97); border:3px solid var(--gold);
+    align-items:center; justify-content:center; flex-direction:column; text-align:center; gap:10px; padding:30px; box-shadow:0 40px 120px rgba(0,0,0,.8), 0 0 80px rgba(230,206,133,.35); }
+  .overlay.on{ display:flex; animation:pop .55s cubic-bezier(.2,1.4,.4,1); }
+  .overlay::before{ content:""; position:absolute; inset:-40%; background:conic-gradient(from 0deg, transparent 0 20deg, rgba(230,206,133,.10) 25deg 30deg, transparent 35deg 60deg, rgba(178,58,46,.10) 65deg 70deg, transparent 75deg 100deg, rgba(62,140,99,.10) 105deg 110deg, transparent 115deg 140deg, rgba(47,127,193,.10) 145deg 150deg, transparent 155deg 180deg, rgba(230,206,133,.10) 185deg 190deg, transparent 195deg 220deg, rgba(242,193,78,.10) 225deg 230deg, transparent 235deg 260deg, rgba(232,106,154,.10) 265deg 270deg, transparent 275deg 300deg, rgba(62,140,99,.10) 305deg 310deg, transparent 315deg 360deg); animation:rays 14s linear infinite; }
+  @keyframes rays{ to{ transform:rotate(360deg) } }
+  .overlay > *{ position:relative; }
+  /* Arranque a pantalla completa: ¡Iniciamos! 3·2·1 → ¡Corre y se va con…! */
+  .start{ display:none; position:fixed; inset:0; z-index:30; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap:0;
+    background: radial-gradient(900px 700px at 50% 40%, rgba(44,122,85,.9), transparent 70%), rgba(8,32,22,.97); }
+  .start.on{ display:flex; }
+  .start .k{ font-family:'IBM Plex Mono',monospace; font-size:26px; letter-spacing:.32em; text-transform:uppercase; color:#FF8A7A; font-weight:600; }
+  .start .t{ font-family:'Yeseva One',serif; font-size:120px; color:var(--cream); line-height:1; margin-top:18px; text-shadow:0 0 40px rgba(230,206,133,.5); }
+  .start .num{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:620px; line-height:1; color:var(--gold-soft); margin-top:10px;
+    text-shadow:0 0 80px rgba(230,206,133,.75), 0 14px 0 rgba(90,63,18,.9); animation:numPop .9s cubic-bezier(.2,1.3,.4,1); }
+  .start .num.go{ font-family:'Yeseva One',serif; font-style:italic; font-size:150px; line-height:1.1; padding:0 60px; animation:numPop .6s cubic-bezier(.2,1.3,.4,1); }
+  @keyframes numPop{ 0%{ transform:scale(.3); opacity:0 } 60%{ transform:scale(1.08); opacity:1 } 100%{ transform:none } }
+  .start .s{ font-family:'IBM Plex Mono',monospace; font-size:22px; letter-spacing:.2em; text-transform:uppercase; color:var(--mut); margin-top:34px; }
+  .overlay .t{ font-family:'Yeseva One',serif; font-size:150px; line-height:1; letter-spacing:-2px;
+    background:linear-gradient(180deg,#FFF6CC 0%,#E6CE85 45%,#C9A24B 70%,#9C7A30 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 30px rgba(230,206,133,.8)) drop-shadow(0 8px 0 rgba(90,63,18,.95)); animation:bounce 1.1s ease-in-out infinite; }
+  @keyframes bounce{ 0%,100%{ transform:scale(1) rotate(-2deg) } 50%{ transform:scale(1.06) rotate(2deg) } }
+  .overlay .ribbon{ font-family:'IBM Plex Mono',monospace; font-size:20px; letter-spacing:.3em; text-transform:uppercase; color:var(--felt-dark); background:linear-gradient(90deg,#E86A9A,#F2C14E,#3E8C63,#2F7FC1,#E86A9A); background-size:300% 100%; animation:slide 3s linear infinite; padding:8px 26px; border-radius:30px; font-weight:600; }
+  @keyframes slide{ to{ background-position:300% 0 } }
+  .chico{ position:absolute; left:50%; top:62%; transform:translate(-50%,-50%) scale(.8); width:920px; padding:44px 50px 48px; border-radius:36px; background:rgba(8,32,22,.96); border:4px solid var(--gold); text-align:center; opacity:0; pointer-events:none; z-index:25; transition:opacity .35s, transform .4s cubic-bezier(.2,1.3,.4,1); box-shadow:0 40px 90px -20px rgba(0,0,0,.9); }
+  .chico.on{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+  .chico .rib{ display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:24px; letter-spacing:.3em; text-transform:uppercase; color:var(--felt-dark); background:linear-gradient(90deg,#E86A9A,#F2C14E,#3E8C63,#2F7FC1,#E86A9A); background-size:300% 100%; animation:slide 3s linear infinite; padding:10px 30px; border-radius:40px; font-weight:600; }
+  .chico .w{ font-family:'Yeseva One',serif; font-size:62px; color:var(--cream); margin-top:20px; line-height:1.1; }
+  .chico .a{ font-family:'IBM Plex Mono',monospace; font-size:92px; font-weight:600; color:var(--gold-soft); line-height:1.1; margin-top:6px; text-shadow:0 0 30px rgba(230,206,133,.5); }
+  .chico .s{ font-family:'IBM Plex Mono',monospace; font-size:22px; letter-spacing:.2em; color:var(--mut); margin-top:10px; }
+  .overlay .card{ background:#fff; border-radius:16px; padding:10px; box-shadow:0 0 0 3px rgba(201,162,75,.6); margin-bottom:10px; }
+  .overlay .card{ padding:8px; border-radius:14px; } .overlay .card img{ display:block; height:260px; border-radius:8px; }
+  .overlay .t{ font-family:'Yeseva One',serif; font-size:120px; color:var(--gold-soft); line-height:1; text-shadow:0 0 50px rgba(230,206,133,.7); }
+  .overlay .w{ font-size:40px; color:var(--cream); margin-top:10px; }
+  .overlay .a{ font-family:'Yeseva One',serif; font-size:110px; color:var(--cream); line-height:1.1; }
+  .overlay .s{ font-family:'IBM Plex Mono',monospace; font-size:18px; letter-spacing:.14em; color:var(--mut); text-transform:uppercase; margin-top:12px; }
+
+  .rail{ margin:0 44px; background:rgba(8,32,22,.6); border:1px solid rgba(201,162,75,.45); border-radius:18px; padding:16px 22px 18px; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+  .rail .cards{ align-content:flex-start; overflow:hidden; }
+  .rail .hd{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+  .rail .hd .n{ font-family:'IBM Plex Mono',monospace; color:var(--cream); font-size:18px; }
+  .cards{ display:flex; gap:12px; flex-wrap:wrap; }
+  .cards .c{ background:#fff; border-radius:8px; padding:4px; box-shadow:0 8px 18px -8px rgba(0,0,0,.7); position:relative; animation:pop .4s; }
+  .cards .c img{ display:block; width:98px; border-radius:5px; }
+  .cards .c .k{ position:absolute; top:-10px; left:-10px; width:28px; height:28px; border-radius:50%; background:var(--felt-dark); color:var(--gold-soft); border:1.5px solid var(--gold); font-family:'IBM Plex Mono',monospace; font-size:12px; display:flex; align-items:center; justify-content:center; }
+  .cards .c.now{ outline:3px solid var(--gold-soft); box-shadow:0 0 28px rgba(230,206,133,.75); transform:translateY(-5px); }
+  .rail .empty{ color:var(--mut); font-size:20px; padding:20px 0; }
+
+  .stats{ margin:0 44px; display:grid; grid-template-columns:1fr 1fr 1fr 1.25fr; gap:14px; }
+  .stat{ background:rgba(8,32,22,.6); border:1px solid rgba(201,162,75,.4); border-radius:16px; padding:14px 18px; }
+  .stat .v{ font-weight:700; font-size:44px; color:var(--cream); line-height:1; }
+  .stat .v small{ font-size:20px; color:var(--mut); font-weight:600; }
+  .stat .l{ margin-top:8px; font-size:11px; }
+  .stat .split{ display:flex; gap:14px; margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--mut); }
+  .stat .split b{ color:var(--gold-soft); font-weight:600; }
+  .verify{ display:flex; gap:12px; align-items:center; background:rgba(8,32,22,.6); border:1px dashed rgba(201,162,75,.6); border-radius:16px; padding:12px 14px; }
+  .qr{ width:84px; height:84px; background:#F6EFDD; border-radius:8px; flex:none; display:grid; grid-template-columns:repeat(7,1fr); padding:6px; gap:2px; }
+  .qr i{ background:#221A0E; display:block; } .qr i.o{ background:transparent; }
+  .verify .h{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--mut); word-break:break-all; margin-top:5px; line-height:1.4; }
+
+  footer{ display:flex; align-items:center; justify-content:space-between; padding:0 44px; border-top:1px solid rgba(201,162,75,.3); font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--mut); letter-spacing:.08em; background:rgba(8,32,22,.55); }
+  footer .age{ border:2px solid var(--gold); border-radius:8px; padding:2px 10px; color:var(--gold-soft); font-weight:600; }
+</style></head>
+<body>
+<header>
+  <div class="brand"><div class="logo">L</div><div><h1 class="display">Lotería Mexicana</h1><small>SALA MONTERREY · MESA PRINCIPAL</small></div></div>
+  <div class="pill lobby" id="pill">APUESTAS ABIERTAS</div>
+  <div class="clock"><div class="t" id="clock">--:--:--</div><div class="f">SORTEO FÍSICO · INSPECTOR PRESENTE</div></div>
+</header>
+
+<section class="jack" id="jack">
+  <div class="marquee" style="top:-7px"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="lbl"><span class="coin">$</span><span class="eyebrow">Pozo acumulado</span><span class="coin">$</span></div>
+  <div class="amt" id="jackAmt">$0</div>
+  <div class="how">Se gana con <b>tabla llena en <span class="jmax">18</span> cartas o menos</b></div>
+  <div class="meta">Crece con cada partida · en la sala y en línea</div>
+  <div class="hit"><div class="big">¡CAYÓ EL POZO!</div><div class="who" id="jackWho"></div></div>
+  <div class="marquee" style="bottom:-7px"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+</section>
+
+<section class="pot">
+  <div class="eyebrow">Premio grande · tabla llena</div><div class="amt" id="potAmt">$0</div>
+  <div class="split">PREMIO CHICO · 4 FIGURAS <b id="smallAmt">$0</b> <span id="smallSt"></span></div>
+  <div class="side"><div class="v"><span class="eyebrow" id="potLbl">Vendidas</span> &nbsp;<b id="sold">0</b> tablas · <b id="price">$20</b> c/u · pago al cierre en caja</div></div>
+</section>
+
+<section class="cantor">
+  <div class="bigc" id="bigc"><img id="bigImg" src="" alt=""></div>
+  <div class="who">
+    <div class="verse" id="verse"></div>
+    <div class="quote" id="quote"></div>
+    <div id="tag"></div>
+  </div>
+</section>
+<div class="start" id="startOv"><div class="k">● Apuestas cerradas</div><div class="t">¡Iniciamos!</div><div class="num" id="startNum">3</div><div class="s" id="startSub">Atentos a sus tablas</div></div>
+<div class="chico" id="chico"><div class="rib">Premio chico · 4 figuras</div><div class="w" id="chicoWho"></div><div class="a" id="chicoAmt"></div><div class="s" id="chicoSub"></div></div>
+<div class="overlay" id="ov"><div class="ribbon">Tenemos ganador</div><div class="card"><img id="ovCard" src="" alt=""></div><div class="t">¡Buenas!</div><div class="w" id="ovWho"></div><div class="a" id="ovAmt"></div><div class="s" id="ovSub"></div></div>
+
+
+
+<footer>
+  <span>SALA DE SORTEOS DE NÚMEROS · SORTEO CENTRAL CON CANTOR EN VIVO</span>
+  <span style="display:flex;gap:14px;align-items:center">JUEGA CON RESPONSABILIDAD <span class="age">+18</span></span>
+</footer>
+
+<script src="sim.js"></script>
+<script src="fx.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  if (new URLSearchParams(location.search).get('mute') === '1') FX.setMuted(true);   // embebida en la sala 3D: el sonido lo pone la sala
+  const jackT = FX.counter($('jackAmt'), SIM.money, { upDur: 800 }), potT = FX.counter($('potAmt'), SIM.money, { upDur: 800 });
+  let last = { round: -1, phase: "", drawnCount: -1, smallDone: false }, chicoT = 0;
+  function tick() {
+    const s = SIM.state();
+    const newRound = s.round !== last.round, newPhase = s.phase !== last.phase, newDraw = s.drawnCount !== last.drawnCount;
+    // cabecera
+    const pill = $('pill');
+    if (s.phase === 'lobby') { pill.className = 'pill lobby'; pill.textContent = 'APUESTAS ABIERTAS · CIERRA ' + SIM.mmss(s.lobbyLeft); }
+    else if (s.phase === 'start') { pill.className = 'pill running'; pill.textContent = 'APUESTAS CERRADAS · ¡INICIAMOS!'; }
+    else if (s.phase === 'running') { pill.className = 'pill running'; pill.textContent = 'EN JUEGO · CARTA ' + s.drawnCount + ' DE 54'; }
+    else { pill.className = 'pill results'; pill.textContent = 'RESULTADOS · SIGUIENTE EN ' + SIM.mmss(s.nextIn); }
+    $('clock').textContent = new Date().toLocaleTimeString('es-MX', { hour12: false });
+    // dinero
+    jackT(s.jackpot); potT(s.big); $('smallAmt').textContent = SIM.money(s.small); { const w = s.smallWinner; $('smallSt').textContent = s.smallDone ? 'ENTREGADO · ' + (w.terminal ? 'TERMINAL ' + w.terminal : w.alias.toUpperCase()) + ' · ' + w.pattern.toUpperCase() + ' · CARTA ' + s.kSmall : s.phase === 'running' ? 'EN JUEGO · AL PRIMERO CON 4 FIGURAS' : 'LÍNEA · DIAGONAL · CUADRO · ESQUINAS'; }
+    $('sold').textContent = s.sold.toLocaleString('en-US'); $('price').textContent = '$' + SIM.PRICE;
+    $('potLbl').textContent = s.phase === 'lobby' ? 'Vendidas hasta ahora' : 'En juego';
+    $('jack').classList.toggle('won', s.jackpotWon);
+    if (s.jackpotWon) $('jackWho').textContent = (s.winner.terminal ? 'Terminal ' + s.winner.terminal + ' · ' : '') + s.winner.alias + ' · ' + SIM.money(s.jackpot);
+    // cantor / carta
+    if (newPhase || newRound || newDraw) {
+      if (s.phase === 'lobby') {
+        $('bigImg').src = SIM.back(); $('verse').textContent = '¡Pásenle, pásenle! Compren sus tablas…';
+        $('quote').innerHTML = 'Próxima partida<br><span class="cd" id="cd"></span>'; $('tag').innerHTML = '<div class="n">PARTIDA #' + s.roundNo.toLocaleString('en-US') + '</div>';
+        $('ov').classList.remove('on');
+      } else if (s.phase === 'start') {
+        $('bigImg').src = SIM.back(); $('verse').textContent = '¡Apuestas cerradas!'; $('tag').innerHTML = '';
+        $('quote').innerHTML = '<div class="go" id="go"></div>'; $('ov').classList.remove('on');
+        if (newPhase) { FX.sayStart(); setTimeout(() => FX.sayCorre(), 3000); }
+      } else if (s.phase === 'running') {
+        const n = s.lastCard; $('bigImg').src = SIM.card(n); $('bigc').classList.remove('pop'); void $('bigc').offsetWidth; $('bigc').classList.add('pop');
+        $('verse').textContent = '¡Corre y se va con…!'; $('quote').innerHTML = '<div class="cardname"><b>' + n + '</b>' + SIM.NAMES[n] + '</div>«' + SIM.VERSES[n] + '»'; if (newDraw && !newRound) FX.sayCard(n);
+        $('tag').innerHTML = '<div class="n">CARTA ' + s.drawnCount + ' DE 54</div>'; $('ov').classList.remove('on');
+      } else {
+        const w = s.winner; $('ovCard').src = SIM.card(s.lastCard); $('ovWho').textContent = (w.terminal ? 'Terminal ' + w.terminal + ' · ' : 'En línea · ') + w.alias;
+        $('bigImg').src = SIM.card(s.lastCard); $('verse').textContent = '¡Buenas! Carta ganadora:'; $('quote').innerHTML = '<div class="cardname"><b>' + s.lastCard + '</b>' + SIM.NAMES[s.lastCard] + '</div>'; $('tag').innerHTML = '<div class="n">TABLA LLENA EN ' + s.k + ' CARTAS</div>';
+        $('ovAmt').textContent = SIM.money(w.amount); $('ovSub').textContent = 'Tabla llena en ' + s.k + ' cartas · folio ' + w.folio + (s.jackpotWon ? ' · ¡más el pozo acumulado!' : '');
+        $('ov').classList.add('on'); FX.buenas(s.jackpotWon); FX.confetti({ count: s.jackpotWon ? 420 : 240, duration: s.jackpotWon ? 7000 : 4500 });
+      }
+    }
+    if (s.phase === 'lobby' && $('cd')) $('cd').textContent = SIM.mmss(s.lobbyLeft);
+    if (s.phase === 'start') {
+      const left = s.startLeft - 2; const txt = left > 0 ? String(Math.ceil(left)) : '¡Corre y se va con…!';
+      const num = $('startNum'); $('startOv').classList.add('on');
+      if (num.textContent !== txt) { num.textContent = txt; num.className = 'num' + (left > 0 ? '' : ' go'); $('startSub').textContent = left > 0 ? 'Atentos a sus tablas' : 'Partida #' + s.roundNo.toLocaleString('en-US'); if (left > 0) FX.beep(Math.ceil(left) === 1); }
+    } else $('startOv').classList.remove('on');
+    // premio chico: el letrero se muestra 3 s cuando cae (también si lo anuncia una terminal)
+    if (s.phase === 'running' && s.smallDone && last.round === s.round && !last.smallDone) { const w = s.smallWinner; $('chicoWho').textContent = (w.terminal ? 'Terminal ' + w.terminal + ' · ' : 'En línea · ') + w.alias; $('chicoAmt').textContent = SIM.money(s.small); $('chicoSub').textContent = w.pattern.toUpperCase() + ' · CARTA ' + s.kSmall; $('chico').classList.add('on'); FX.chaching(); FX.fanfare(false); clearTimeout(chicoT); chicoT = setTimeout(() => $('chico').classList.remove('on'), 3000); }
+    last = { round: s.round, phase: s.phase, drawnCount: s.drawnCount, smallDone: s.smallDone };
+  }
+  setInterval(tick, 200); tick();
+  (function(){var W=1080,H=1920;function fit(){var s=Math.min(innerWidth/W,innerHeight/H),b=document.body.style;b.transform='scale('+s+')';b.left=((innerWidth-W*s)/2)+'px';b.top=((innerHeight-H*s)/2)+'px';}addEventListener('resize',fit);fit();})();
+</script>
+<script>document.querySelectorAll('.jmax').forEach((e) => { e.textContent = SIM.JACK_MAX; });</script>
+</body></html>
