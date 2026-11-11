@@ -116,6 +116,7 @@
   const Q = new URLSearchParams(location.search);
   const NT = Math.max(1, Math.min(300, +Q.get('n') || 300));          // número de terminales
   const PERF = Q.get('perf') === '1';                                  // modo ligero
+  const TOUR_AL_ENTRAR = Q.get('tour') !== '0';                        // ?tour=0 para entrar caminando
   let ANISO = PERF ? 2 : 16;                                           // nitidez de texturas en oblicuo; baja sola si va lento
   const err = (title, html) => { const e = $('err'); e.innerHTML = '<b>' + title + '</b>' + html; e.style.display = 'block'; };
 
@@ -1323,7 +1324,7 @@
 
   // ══════════════ vistas y recorrido ══════════════
   const TOUR = [
-    { x: 0, z: 17.5, yaw: 0, pitch: -0.02, t: 2.5, txt: 'Entrada de la sala · 300 terminales en 10 filas' },
+    { x: 0, z: 17.5, yaw: 0, pitch: -0.02, t: 5, txt: 'Entrada de la sala · 300 terminales en 10 filas' },
     { x: 0, z: 9.0, yaw: 0, pitch: -0.04, t: 5, txt: 'Pasillo central · las 300 mesitas juegan la misma partida' },
     { x: -7.5, z: 3.0, yaw: -0.9, pitch: -0.12, t: 5, txt: 'Mesas de la izquierda · la pantalla lateral lleva la baraja y el pozo' },
     { x: -2.0, z: -3.0, yaw: 0, pitch: 0.06, t: 5, txt: 'Frente a la pantalla central · el sorteo con cantor en vivo' },
@@ -1331,17 +1332,22 @@
     { x: 7.0, z: -7.0, yaw: Math.PI * 0.86, pitch: -0.1, t: 5, txt: 'La sala llena, vista desde el frente' },
     { x: 4.0, z: 8.0, yaw: Math.PI * 0.08, pitch: -0.05, t: 5, txt: 'Regreso entre las mesas' },
   ];
-  function tourStep() {
+  let tourI = -1;
+  function tourStep() {                      // circular: del último punto se vuelve a la entrada, sin fin
+    const L = TOUR.length;
+    if (tourT >= L) { tourT -= L; tourI = -1; }
     const i = Math.floor(tourT), f = tourT - i;
-    if (i >= TOUR.length - 1) { tour = 0; hint('Fin del recorrido · camina con <b>WASD</b>', 3000); return; }
-    const a = TOUR[i], b = TOUR[i + 1], e = f * f * (3 - 2 * f);
+    const a = TOUR[i], b = TOUR[(i + 1) % L], e = f * f * (3 - 2 * f);
     player.x = a.x + (b.x - a.x) * e; player.z = a.z + (b.z - a.z) * e;
-    player.yaw = a.yaw + (b.yaw - a.yaw) * e; player.pitch = a.pitch + (b.pitch - a.pitch) * e;
-    if (f < 0.02 && a.txt !== hint.last) { hint.last = a.txt; hint(a.txt, (a.t || 4) * 1000); }
+    let giro = b.yaw - a.yaw;                // girar siempre por el lado corto
+    while (giro > Math.PI) giro -= 2 * Math.PI;
+    while (giro < -Math.PI) giro += 2 * Math.PI;
+    player.yaw = a.yaw + giro * e; player.pitch = a.pitch + (b.pitch - a.pitch) * e;
+    if (tourI !== i) { tourI = i; hint(a.txt, (a.t || 4) * 1000); }   // por índice: a pocos cuadros el texto se saltaba
     tourT += dt / (b.t || 4.5);
   }
   let aerea = false, aereaT = 0;
-  $('bTour').onclick = () => { if (seated) standUp(); aerea = false; tour = 1; tourT = 0; hint.last = ''; };
+  $('bTour').onclick = () => { if (seated) standUp(); aerea = false; tour = 1; tourT = 0; tourI = -1; };
   $('bAerea').onclick = () => { if (seated) standUp(); tour = 0; aerea = !aerea; aereaT = 0; $('bAerea').classList.toggle('on', aerea); };
   $('bFrente').onclick = () => { if (seated) standUp(); tour = 0; aerea = false; $('bAerea').classList.remove('on'); player.x = 0; player.z = -9.0; player.yaw = 0; player.pitch = 0.1; };
   $('bMesa').onclick = () => { if (seated) standUp(); tour = 0; aerea = false; $('bAerea').classList.remove('on'); const t = ACTIVE[Math.floor(ACTIVE.length * 0.52)]; player.x = t.x; player.z = t.z + 1.5; player.yaw = 0; player.pitch = -0.1; setTimeout(() => sitDown(t), 60); };
@@ -1442,6 +1448,7 @@
     }
 
     vigilar(real);
+    if ($('bTour').classList.contains('on') !== !!tour) $('bTour').classList.toggle('on', !!tour);
     cutT += dt; if (cutT > 0.12) { cutT = 0; seguirCandiles(); seguirPantallas();
       // los mapas de sombra (direccional + candiles) se rehacen a la mitad de ritmo: son 4 pases de escena
       if (cal >= 1 && (sombT = (sombT + 1) % 2) === 0) { seguirSombra(); renderer.shadowMap.needsUpdate = true; }
@@ -1487,13 +1494,18 @@
     }
     $('start').classList.add('hide'); setTimeout(() => $('start').remove(), 700);
     requestAnimationFrame(loop);
-    if (Q.get('nolock') !== '1') setTimeout(() => $('gl').requestPointerLock(), 300);
-    hint('Camina con <b>WASD</b> · acércate a una mesa y pulsa <b>E</b> para jugar', 5000);
+    if (TOUR_AL_ENTRAR) { tour = 1; tourT = 0; tourI = -1; }          // la sala se enseña sola hasta que alguien la toque
+    // con el recorrido en marcha NO se captura el ratón: el primer clic es el que toma el control
+    else if (Q.get('nolock') !== '1') setTimeout(() => $('gl').requestPointerLock(), 300);
+    hint(TOUR_AL_ENTRAR ? 'Recorrido guiado en marcha · haz clic o usa <b>WASD</b> para tomar el control'
+                        : 'Camina con <b>WASD</b> · acércate a una mesa y pulsa <b>E</b> para jugar', 6000);
   }
   // API para pruebas y para enlazar desde otras páginas
   window.SALA = { start, sitDown, standUp, player, camera, scene, cssScene, TERMS: ACTIVE, SCREENS, setLive, hint,
     ir: (x, z, yaw, pitch) => { tour = 0; aerea = false; player.x = x; player.z = z; if (yaw !== undefined) player.yaw = yaw; if (pitch !== undefined) player.pitch = pitch; },
     cal: () => cal, setCalidad, pixel, cuadro, luz: key, renderer, esMueble, escalaPx, nitidez,
+    tour: () => ({ on: !!tour, t: +tourT.toFixed(2), punto: tourI, vueltas: TOUR.length }),
+    setTour: (t) => { tour = 1; tourT = t; tourI = -1; },
     auto: () => ({ activo: autoOn, paso, px: TOPE_PX, aniso: ANISO }),
     ao: { rt: () => rtBlur, nor: () => rtNormal, u: () => matAO.uniforms, mul: () => matMul.uniforms }, info: () => ({ terminales: ACTIVE.length, calidad: CAL_N[cal], iframes: IFRAMES.length, draws: renderer.info.render.calls, tris: renderer.info.render.triangles, fps, seated: seated && seated.n, cards: CARDS_OK }) };
   preload(() => { $('bGo').textContent = 'Entrar a la sala'; $('bGo').disabled = false; });
