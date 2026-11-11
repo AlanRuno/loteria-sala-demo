@@ -39,6 +39,12 @@
   #cross{ position:fixed; left:50%; top:50%; width:7px; height:7px; margin:-3.5px 0 0 -3.5px; border-radius:50%; background:rgba(246,239,221,.75); box-shadow:0 0 0 1.5px rgba(0,0,0,.45); z-index:4; pointer-events:none; }
   body.seated #cross, body.locked.seated #cross{ display:none; }
   body.seated #keys{ opacity:0; pointer-events:none; }
+  /* escaparate: sólo se ve el recorrido · ni botones, ni mira, ni nada que tocar */
+  body.kiosco #bottom, body.kiosco #seatbar, body.kiosco #cross, body.kiosco #chipFps{ display:none !important; }
+  body.kiosco #css iframe{ pointer-events:none !important; }   /* la terminal se maneja sola, no por el visitante */
+  body.kiosco #gl{ cursor:none; }
+  body.kiosco #hint{ bottom:46px; font-size:17px; padding:12px 26px; max-width:88vw; white-space:normal; text-align:center; }
+  body.kiosco.limpio #top{ display:none !important; }
   #start{ position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; padding:40px;
     background:radial-gradient(900px 600px at 50% 40%, #16412C, #0A1A12 70%, #07100B); cursor:pointer; }
   #start h2{ font-family:'Yeseva One',serif; font-weight:400; font-size:48px; line-height:1.1; }
@@ -68,7 +74,7 @@
     <div class="chip"><b id="sFase">—</b><span id="sFaseL">Partida</span></div>
     <div class="chip"><b id="sTarj">FUERA</b><span>Tu tarjeta</span></div>
     <div class="chip"><b id="sJug">0</b><span>Jugadores en sala</span></div>
-    <div class="chip"><b id="sFps">0</b><span>FPS</span></div>
+    <div class="chip" id="chipFps"><b id="sFps">0</b><span>FPS</span></div>
   </div>
 </div>
 
@@ -96,7 +102,7 @@
   <p>Una sala de casino con <b>300 terminales «La Mesita»</b> funcionando al mismo tiempo, la pantalla central del sorteo y las pantallas laterales en vivo. Camina por la sala, siéntate en cualquier mesa y juega una partida real.</p>
   <div class="bar"><i id="pbar"></i></div>
   <button class="go" id="bGo">Entrar a la sala</button>
-  <p style="font-size:12.5px">Usa el mouse para mirar y <b>WASD</b> para caminar. Para salir del control del mouse, pulsa <b>Esc</b>.</p>
+  <p style="font-size:12.5px" id="sKeys">Usa el mouse para mirar y <b>WASD</b> para caminar. Para salir del control del mouse, pulsa <b>Esc</b>.</p>
 </div>
 <div id="err"></div>
 
@@ -117,6 +123,9 @@
   const NT = Math.max(1, Math.min(300, +Q.get('n') || 300));          // número de terminales
   const PERF = Q.get('perf') === '1';                                  // modo ligero
   const TOUR_AL_ENTRAR = Q.get('tour') !== '0';                        // ?tour=0 para entrar caminando
+  const KIOSCO = TOUR_AL_ENTRAR && Q.get('control') !== '1';           // escaparate: manda el recorrido, no hay controles
+  const PREMIO = Q.get('premio');                                      // ?premio=chico|grande: la jugada de la mesa gana (para enseñarlo)
+  if (KIOSCO) { document.body.classList.add('kiosco'); if (Q.get('limpio') === '1') document.body.classList.add('limpio'); }
   let ANISO = PERF ? 2 : 16;                                           // nitidez de texturas en oblicuo; baja sola si va lento
   const err = (title, html) => { const e = $('err'); e.innerHTML = '<b>' + title + '</b>' + html; e.style.display = 'block'; };
 
@@ -726,7 +735,7 @@
     margen += d; if (margen < 3.5) return;                 // tras cada cambio, dejarlo asentar
     lento = (fps > 0 && fps < 25) ? lento + d : 0;
     if (lento < 2.5) return;
-    const e = ALIGERAR[paso++]; e.hacer(); hint(e.aviso + ' · <b>G</b> para mandar tú', 4200);
+    const e = ALIGERAR[paso++]; e.hacer(); hint(e.aviso + (KIOSCO ? '' : ' · <b>G</b> para mandar tú'), 4200);
     margen = 0; lento = 0;
   }
 
@@ -1188,9 +1197,10 @@
 
   // ══════════════ jugador ══════════════
   const player = { x: 0, z: 16.5, yaw: 0, pitch: -0.05, vy: 0 };
-  let locked = false, seated = null, seatT = 0, seatFrom = null, seatTo = null, tour = 0, tourT = 0;
+  let locked = false, seated = null, seatT = 0, seatFrom = null, seatTo = null, tour = 0, tourT = 0, enGuion = 0;
   const KEYS = {};
   addEventListener('keydown', (e) => {
+    if (KIOSCO) return;                                      // escaparate: el recorrido no se interrumpe
     KEYS[e.code] = true;
     if (e.code === 'KeyE') { e.preventDefault(); seated ? standUp() : sitDown(); }
     if (e.code === 'Escape' && seated) standUp();
@@ -1204,11 +1214,11 @@
       if (e.code === 'KeyG') $('bCal').click(); }
     if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.code) >= 0) tour = 0;
   });
-  addEventListener('keyup', (e) => { KEYS[e.code] = false; if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && mirando) { mirando = false; $('bVista').classList.remove('on'); } });
-  $('gl').addEventListener('click', () => { if (!seated) $('gl').requestPointerLock(); });
+  addEventListener('keyup', (e) => { if (KIOSCO) return; KEYS[e.code] = false; if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && mirando) { mirando = false; $('bVista').classList.remove('on'); } });
+  $('gl').addEventListener('click', () => { if (!KIOSCO && !seated) $('gl').requestPointerLock(); });
   document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === $('gl'); document.body.classList.toggle('locked', locked); });
   document.addEventListener('mousemove', (e) => {
-    if (!locked || seated) return;
+    if (KIOSCO || !locked || seated) return;
     player.yaw -= e.movementX * 0.0022; player.pitch -= e.movementY * 0.0022;
     player.pitch = Math.max(-1.3, Math.min(1.3, player.pitch)); tour = 0;
   });
@@ -1278,11 +1288,11 @@
     const cen = SCREENS[0].centro, dx = cen.x - px, dy = cen.y - py, dz = cen.z - pz, dl = Math.hypot(dx, dy, dz);
     seatVista = { x: px, y: py, z: pz, yaw: Math.atan2(-dx, -dz), pitch: Math.asin(dy / dl), fov: 56 };
     mirT = 0; mirando = false;
-    seatT = 0; tour = 0;
+    seatT = 0; if (!enGuion) tour = 0;                       // si se sienta el guion, el recorrido sigue mandando
     const nueva = !ses || ses.t !== t;
     abrirSesion(t);
     fovTarget = fovSeated;
-    hint(nueva ? 'Terminal <b>T-' + t.n + '</b> · pasa tu tarjeta para entrar · <b>⇧</b> mira la pantalla principal · <b>E</b> te levantas'
+    if (!KIOSCO) hint(nueva ? 'Terminal <b>T-' + t.n + '</b> · pasa tu tarjeta para entrar · <b>⇧</b> mira la pantalla principal · <b>E</b> te levantas'
                : 'De vuelta en la <b>terminal T-' + t.n + '</b> · tu sesión sigue abierta', 5200);
   }
   function standUp() {                                       // levantarse NO cierra la sesión: la tarjeta sigue puesta
@@ -1296,7 +1306,7 @@
   $('bUp').onclick = standUp;
   $('bTarj').onclick = () => cerrarSesion(true);
   $('bVista').onclick = () => { mirando = !mirando; $('bVista').classList.toggle('on', mirando); };
-  addEventListener('wheel', (e) => { if (!seated) return; fovSeated = Math.max(24, Math.min(62, fovSeated + Math.sign(e.deltaY) * 3)); fovTarget = fovSeated; }, { passive: true });
+  addEventListener('wheel', (e) => { if (KIOSCO || !seated) return; fovSeated = Math.max(24, Math.min(62, fovSeated + Math.sign(e.deltaY) * 3)); fovTarget = fovSeated; }, { passive: true });
   function animarTarjeta() {
     if (!cardTerm) return;
     if (cardDir > 0 && cardT >= 1) { cardT = 1; }   // puesta: se queda en el lector
@@ -1333,21 +1343,99 @@
     { x: 4.0, z: 8.0, yaw: Math.PI * 0.08, pitch: -0.05, t: 5, txt: 'Regreso entre las mesas' },
   ];
   let tourI = -1;
-  function tourStep() {                      // circular: del último punto se vuelve a la entrada, sin fin
-    const L = TOUR.length;
-    if (tourT >= L) { tourT -= L; tourI = -1; }
-    const i = Math.floor(tourT), f = tourT - i;
-    const a = TOUR[i], b = TOUR[(i + 1) % L], e = f * f * (3 - 2 * f);
+
+  // ══════════════ capítulo de la mesa ══════════════
+  // El recorrido no sólo pasea: cuando abre la venta se sienta en una terminal, mete la tarjeta,
+  // apuesta sus tablas y se queda a ver correr la partida. Luego retira la tarjeta y sigue.
+  const MESA = (function () {                      // una terminal sana, la más pegada al pasillo central
+    let best = null, bd = 1e9;
+    ACTIVE.forEach((t) => { if (estadoDe(t) !== 'ok') return;
+      const d = Math.hypot(t.x + 3.6, t.z - 4.2); if (d < bd) { bd = d; best = t; } });
+    return best || ACTIVE[0];
+  })();
+  const MESA_AL = { x: MESA.x + 2.1, z: MESA.z + 1.7, yaw: Math.atan2(2.1, 1.7), pitch: -0.10 };   // en el pasillo, mirando a la mesa
+  const MESA_EN = { x: MESA.x, z: MESA.z + 1.75, yaw: 0, pitch: -0.06 };                           // de pie frente a la terminal
+  const term = (msg) => { const f = ses && ses.el; if (f && f.contentWindow) { try { f.contentWindow.postMessage(msg, '*'); } catch (e) {} } };
+  const mirar = (on) => () => { mirando = on; $('bVista').classList.toggle('on', on); };
+  let modo = 'camina', modoT = 0, mesaDe = null, mesaK = 0, mesaPaso = 0, mesaUlt = 0, proxMesa = 0;
+  const pose = () => ({ x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch });
+  function mover(a, b, u) {                        // interpolación suave entre dos poses del recorrido
+    const e = u * u * (3 - 2 * u);
     player.x = a.x + (b.x - a.x) * e; player.z = a.z + (b.z - a.z) * e;
-    let giro = b.yaw - a.yaw;                // girar siempre por el lado corto
+    let giro = b.yaw - a.yaw;                      // girar siempre por el lado corto
     while (giro > Math.PI) giro -= 2 * Math.PI;
     while (giro < -Math.PI) giro += 2 * Math.PI;
     player.yaw = a.yaw + giro * e; player.pitch = a.pitch + (b.pitch - a.pitch) * e;
-    if (tourI !== i) { tourI = i; hint(a.txt, (a.t || 4) * 1000); }   // por índice: a pocos cuadros el texto se saltaba
+  }
+  function hayVenta() {                            // sólo vale la pena sentarse si se va a poder apostar
+    if (seated || modo !== 'camina' || performance.now() < proxMesa) return false;
+    const s = estado; if (!s) return false;
+    return (s.phase === 'lobby' && s.lobbyLeft > 16) || (s.phase === 'results' && s.nextIn > 10 && s.nextIn < 26);
+  }
+  function tourStep() {
+    if (modo === 'acerca') {                       // dos tramos: al pasillo y de ahí a la mesa
+      modoT += realT;
+      if (modoT < 2.6) mover(mesaDe, MESA_AL, modoT / 2.6);
+      else if (modoT < 4.4) mover(MESA_AL, MESA_EN, (modoT - 2.6) / 1.8);
+      else { modo = 'mesa'; modoT = 0; mesaPaso = 0; mesaUlt = 0; enGuion = 1; sitDown(MESA); }
+      return;
+    }
+    if (modo === 'aleja') {                        // de la mesa, de vuelta al circuito
+      modoT += realT;
+      if (modoT < 3.2) mover(mesaDe, TOUR[mesaK], modoT / 3.2);
+      else { modo = 'camina'; tourT = mesaK; tourI = -1; }
+      return;
+    }
+    const L = TOUR.length;                         // circular: del último punto se vuelve a la entrada, sin fin
+    if (tourT >= L) { tourT -= L; tourI = -1; }
+    const i = Math.floor(tourT), f = tourT - i;
+    const a = TOUR[i], b = TOUR[(i + 1) % L];
+    mover(a, b, f);
+    if (tourI !== i) { tourI = i; hint(a.txt, (a.t || 4) * 1000 + 700); }   // por índice: a pocos cuadros el texto se saltaba
     tourT += dt / (b.t || 4.5);
+    if (f > 0.25 && hayVenta()) { modo = 'acerca'; modoT = 0; mesaDe = pose(); hint('Hay mesa libre y la venta está abierta · se sienta a jugar', 5000); }
+  }
+
+  const JUEGO = [   // cada paso espera sus segundos y, si lo pide, su momento de la partida
+    { tras: 0.4, txt: 'Terminal <b>«La Mesita»</b> · pide la tarjeta del casino para abrir sesión' },
+    { tras: 3.4, txt: 'Tarjeta leída · entra con su saldo · en la mesa no se maneja efectivo' },
+    { tras: 2.2, txt: (s) => s.phase === 'lobby' ? 'Abre su morral · las tablas que trae guardadas'
+                                                 : 'Sesión abierta · espera a que abra la venta de la siguiente partida' },
+    { tras: 1.2, cuando: (s) => s.phase === 'lobby', txt: 'Venta abierta · apuesta sus tablas desde el morral',
+      hacer: () => term({ __ll_auto: 'apostar', premio: PREMIO }) },
+    { tras: 3.6, txt: 'Cada tabla cuesta <b>$20</b> y se cobra de su saldo al instante' },
+    { tras: 4.4, txt: 'Cada apuesta deja su <b>folio</b> de constancia en la terminal' },
+    { tras: 4.4, txt: 'Lo vendido arma el bote de la partida y alimenta el pozo acumulado' },
+    { tras: 1.0, cuando: (s) => s.phase !== 'lobby', txt: 'Cierra la venta · las 300 mesas juegan la misma partida', hacer: mirar(true) },
+    { tras: 1.2, cuando: (s) => s.phase === 'running', txt: 'El cantor canta en vivo desde la pantalla central' },
+    { tras: 1.2, cuando: (s) => s.drawnCount >= 2, txt: 'De vuelta a su tabla · el frijol cae solo al cantar una carta suya', hacer: mirar(false) },
+    { tras: 6.0, txt: 'Cuatro figuras pagan el premio chico · las dieciséis, el grande y el pozo acumulado' },
+    { tras: 1.2, cuando: (s, t) => s.drawnCount >= 5 || t > 95, txt: 'Retira su tarjeta · se cierra la sesión y la terminal vuelve a bloquearse' },
+    { tras: 2.8, txt: null, hacer: () => salirDeMesa() },
+  ];
+  function guionMesa() {
+    if (!tour) { modo = 'camina'; enGuion = 0; return; }       // alguien tomó el control: el guion se retira
+    modoT += realT;
+    if (modoT > 150) return salirDeMesa();                     // red de seguridad: nunca se queda clavado en la mesa
+    const b = JUEGO[mesaPaso]; if (!b) return;
+    if (modoT < mesaUlt + b.tras) return;
+    const s = estado || SIM.state();
+    if (b.cuando && !b.cuando(s, modoT)) return;
+    mesaPaso++; mesaUlt = modoT;
+    const txt = typeof b.txt === 'function' ? b.txt(s) : b.txt;
+    if (txt) hint(txt, 9000);
+    if (b.hacer) b.hacer();
+  }
+  function salirDeMesa() {
+    enGuion = 0; standUp(); if (ses) cerrarSesion(false);      // se levanta y se lleva su tarjeta: la mesa queda libre
+    let k = 0, bd = 1e9;
+    TOUR.forEach((p, i) => { const d = Math.hypot(p.x - player.x, p.z - player.z); if (d < bd) { bd = d; k = i; } });
+    mesaK = k; mesaDe = pose(); modo = 'aleja'; modoT = 0;
+    proxMesa = performance.now() + 50000;
+    hint('Se levanta con su tarjeta · seguimos el recorrido por la sala', 4500);
   }
   let aerea = false, aereaT = 0;
-  $('bTour').onclick = () => { if (seated) standUp(); aerea = false; tour = 1; tourT = 0; tourI = -1; };
+  $('bTour').onclick = () => { enGuion = 0; if (seated) standUp(); aerea = false; tour = 1; tourT = 0; tourI = -1; modo = 'camina'; proxMesa = performance.now() + 20000; };
   $('bAerea').onclick = () => { if (seated) standUp(); tour = 0; aerea = !aerea; aereaT = 0; $('bAerea').classList.toggle('on', aerea); };
   $('bFrente').onclick = () => { if (seated) standUp(); tour = 0; aerea = false; $('bAerea').classList.remove('on'); player.x = 0; player.z = -9.0; player.yaw = 0; player.pitch = 0.1; };
   $('bMesa').onclick = () => { if (seated) standUp(); tour = 0; aerea = false; $('bAerea').classList.remove('on'); const t = ACTIVE[Math.floor(ACTIVE.length * 0.52)]; player.x = t.x; player.z = t.z + 1.5; player.yaw = 0; player.pitch = -0.1; setTimeout(() => sitDown(t), 60); };
@@ -1364,7 +1452,7 @@
     if (!d || !d.__ll_announce) return; IFRAMES.forEach((f) => { try { if (f.contentWindow && f.contentWindow !== e.source) f.contentWindow.postMessage(d, '*'); } catch (err) {} }); });
 
   // ══════════════ bucle ══════════════
-  let dt = 0, last = performance.now(), fps = 0, fpsT = 0, fpsN = 0, paintT = 0, paintN = 0, lastDraw = -1, lastPhase = '';
+  let dt = 0, realT = 0.016, estado = null, last = performance.now(), fps = 0, fpsT = 0, fpsN = 0, paintT = 0, paintN = 0, lastDraw = -1, lastPhase = '';
   function loop(now) {
     requestAnimationFrame(loop);
     const real = Math.max(0.0005, (now - last) / 1000);      // tiempo de verdad: el dt va topado y mentía en el contador
@@ -1372,6 +1460,8 @@
     fpsN++; fpsT += real; if (fpsT > 0.5) { fps = Math.round(fpsN / fpsT); fpsN = 0; fpsT = 0; $('sFps').textContent = fps; }
 
     const s = SIM.state();
+    realT = real; estado = s;                      // reloj de verdad y partida en curso, para el guion del recorrido
+    if (modo === 'mesa') guionMesa();
     // cantor y efectos (los pone la sala, las vistas embebidas van en silencio)
     if (s.drawnCount !== lastDraw) { if (s.phase === 'running' && s.drawnCount > 0 && lastDraw >= 0) FX.sayCard(s.lastCard); lastDraw = s.drawnCount; }
     if (s.phase !== lastPhase) {
@@ -1497,14 +1587,18 @@
     if (TOUR_AL_ENTRAR) { tour = 1; tourT = 0; tourI = -1; }          // la sala se enseña sola hasta que alguien la toque
     // con el recorrido en marcha NO se captura el ratón: el primer clic es el que toma el control
     else if (Q.get('nolock') !== '1') setTimeout(() => $('gl').requestPointerLock(), 300);
-    hint(TOUR_AL_ENTRAR ? 'Recorrido guiado en marcha · haz clic o usa <b>WASD</b> para tomar el control'
+    proxMesa = performance.now() + 14000;        // primero la sala; al rato nos sentamos a jugar
+    hint(KIOSCO ? 'Recorrido continuo · la sala se enseña sola y se sienta a jugar cuando abre la venta'
+       : TOUR_AL_ENTRAR ? 'Recorrido guiado en marcha · haz clic o usa <b>WASD</b> para tomar el control'
                         : 'Camina con <b>WASD</b> · acércate a una mesa y pulsa <b>E</b> para jugar', 6000);
+    if (KIOSCO) $('sKeys').innerHTML = 'No hay nada que tocar: la sala se recorre sola, se sienta en una terminal y juega una partida completa.';
   }
   // API para pruebas y para enlazar desde otras páginas
   window.SALA = { start, sitDown, standUp, player, camera, scene, cssScene, TERMS: ACTIVE, SCREENS, setLive, hint,
     ir: (x, z, yaw, pitch) => { tour = 0; aerea = false; player.x = x; player.z = z; if (yaw !== undefined) player.yaw = yaw; if (pitch !== undefined) player.pitch = pitch; },
     cal: () => cal, setCalidad, pixel, cuadro, luz: key, renderer, esMueble, escalaPx, nitidez,
-    tour: () => ({ on: !!tour, t: +tourT.toFixed(2), punto: tourI, vueltas: TOUR.length }),
+    tour: () => ({ on: !!tour, t: +tourT.toFixed(2), punto: tourI, vueltas: TOUR.length, modo, modoT: +modoT.toFixed(1), paso: mesaPaso, mesa: MESA.n, kiosco: KIOSCO }),
+    mesa: () => { proxMesa = 0; },
     setTour: (t) => { tour = 1; tourT = t; tourI = -1; },
     auto: () => ({ activo: autoOn, paso, px: TOPE_PX, aniso: ANISO }),
     ao: { rt: () => rtBlur, nor: () => rtNormal, u: () => matAO.uniforms, mul: () => matMul.uniforms }, info: () => ({ terminales: ACTIVE.length, calidad: CAL_N[cal], iframes: IFRAMES.length, draws: renderer.info.render.calls, tris: renderer.info.render.triangles, fps, seated: seated && seated.n, cards: CARDS_OK }) };

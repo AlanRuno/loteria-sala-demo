@@ -887,13 +887,19 @@
   // Ctrl+Shift+1 = tu tabla «Demo» hace línea en la carta 4 (premio chico) · Ctrl+Shift+2 = además tabla llena en la 16 (grande + pozo)
   // También por URL: terminal.html?demo=chico | ?demo=grande  (abrir-sala.cmd chico|grande)
   function demoArm(mode) { L.demo = mode; const s = SIM.state(); toast('Demo armada: ' + (mode === 'grande' ? 'línea en la carta 4 y tabla llena en la 16 (cae el pozo)' : 'línea en la carta 4') + (s.phase === 'lobby' ? ' · en esta partida' : ' · en la siguiente partida'), false, I.bolt); if (s.phase === 'lobby') demoApply(s); }
-  function demoApply(s) {
-    if (!L.demo) return; const order = SIM.round(s.round).order;
+  function demoTabla(mode, s) {   // arma (o reusa) la tabla preparada para esta partida y devuelve su id
+    const order = SIM.round(s.round).order;
     const rest = order.slice(30, 54);   // cartas que salen tarde: así la tabla «chico» no se llena antes del ganador
-    const cards = L.demo === 'grande' ? order.slice(0, 16) : order.slice(0, 4).concat(rest.slice(0, 12));
-    let t = byId('TDEMO'); if (!t) { t = { id: 'TDEMO', name: 'Demo', cards, bg: 'table_4' }; if (T.length >= MAX_TABLAS) T[T.length - 1] = t; else T.push(t); } else t.cards = cards;
-    save(); L.auto = true; L.demo = null;
-    const r = doBet('TDEMO', s, true); if (r) toast('Demo: no se pudo apostar · ' + r, true); else { render(s); if (L.drawerOpen) renderDrawer(); }
+    const cards = mode === 'grande' ? order.slice(0, 16) : order.slice(0, 4).concat(rest.slice(0, 12));
+    let t = byId('TDEMO');
+    if (!t) { t = { id: 'TDEMO', name: 'La consentida', cards, bg: 'table_4' }; if (T.length >= MAX_TABLAS) T[T.length - 1] = t; else T.push(t); }
+    else { t.cards = cards; t.name = t.name === 'Demo' ? 'La consentida' : t.name; }
+    save(); return t.id;
+  }
+  function demoApply(s) {
+    if (!L.demo) return;
+    const id = demoTabla(L.demo, s); L.auto = true; L.demo = null;
+    const r = doBet(id, s, true); if (r) toast('Demo: no se pudo apostar · ' + r, true); else { render(s); if (L.drawerOpen) renderDrawer(); }
   }
   addEventListener('keydown', (e) => { if (e.ctrlKey && e.shiftKey && (e.code === 'Digit1' || e.code === 'Digit2')) { e.preventDefault(); demoArm(e.code === 'Digit1' ? 'chico' : 'grande'); } });
   { const d = Q.get('demo'); if (d === 'chico' || d === 'grande') setTimeout(() => demoArm(d), 800); }
@@ -912,6 +918,25 @@
   addEventListener('message', (e) => { const d = e && e.data; if (d && d.__ll_card) entrar(); });
   // tocar el candado mete la tarjeta en el acto: si no, el aviso se come los toques del jugador
   $('cardLock').addEventListener('pointerdown', () => { if (!bloqueada) return; try { parent.postMessage({ __ll_card_req: true }, '*'); } catch (err) {} });
+
+  // ── escaparate: en el recorrido de la sala nadie toca la terminal, así que se juega sola ──
+  // La sala 3D manda {__ll_auto:'apostar'} al sentarse con la venta abierta. Hace exactamente lo
+  // que haría la jugadora: abre su morral, apuesta sus tablas y deja caer los frijoles solos.
+  let autoCorre = false;
+  function autoJugada(premio) {
+    if (autoCorre) return; autoCorre = true;
+    const luego = (ms, f) => setTimeout(() => { try { f(); } catch (e) {} }, ms);
+    if (L.balance < P * 4) { L.balance = 2000; balOdo(L.balance); }      // una demostración en bucle no se queda sin saldo
+    const ids = T.slice(0, 2).map((t) => t.id);
+    if (premio) ids.push(demoTabla(premio, SIM.state()));
+    luego(250, () => openDrawer(true));
+    ids.forEach((id, k) => luego(1900 + k * 2200, () => { const s = SIM.state(); if (s.phase === 'lobby') tryBet(id, s); }));
+    const fin = 1900 + ids.length * 2200;
+    luego(fin + 500, () => openDrawer(false));
+    luego(fin + 1500, () => { autoCorre = false; if (!L.bets.length || L.auto) return;
+      L.auto = true; toast('Tus frijoles caen solos al cantar tus cartas', false, I.bolt); render(SIM.state()); });
+  }
+  addEventListener('message', (e) => { const d = e && e.data; if (d && d.__ll_auto === 'apostar') autoJugada(d.premio); });
 
   { const sys = Q.get('sys');
     if (sys === 'offline') { $('sys').className = 'sys on offline'; $('sys').innerHTML = `<div class="ic">${I.wifi}</div><h1>Sin conexión con la sala</h1><p>Tus tablas y tu saldo están a salvo. En cuanto regrese la conexión seguimos donde íbamos. Si tarda, un asistente viene en camino.</p><div class="k">RECONECTANDO… · TERMINAL ${TID} · 00:12</div>`; }
