@@ -732,6 +732,10 @@
   let paso = 0, autoOn = AUTO, margen = 0, lento = 0;
   function vigilar(d) {
     if (!autoOn || paso >= ALIGERAR.length) return;
+    // El navegador frena a ~1 fps lo que no está a la vista: otra pestaña, o la ventana tapada por
+    // otra encima. Eso no es un equipo lento, y si se rebajara aquí la sala se quedaría fea para
+    // siempre nomás por haber mirado a otro lado. Un equipo de verdad justo entrega 0.04-0.12 s.
+    if (document.hidden || d > 0.34) { margen = 0; lento = 0; return; }
     margen += d; if (margen < 3.5) return;                 // tras cada cambio, dejarlo asentar
     lento = (fps > 0 && fps < 25) ? lento + d : 0;
     if (lento < 2.5) return;
