@@ -23,24 +23,40 @@
   .otras a:hover{ border-color:var(--gold); }
   .nota{ margin-top:28px; font-size:13px; color:var(--mut); max-width:620px; line-height:1.5; }
   .nota b{ color:var(--gold-soft); }
-  footer{ margin-top:36px; font-size:11.5px; color:rgba(169,188,163,.75); max-width:680px; line-height:1.6; border-top:1px solid rgba(201,162,75,.2); padding-top:16px; }
+  .idioma{ margin-top:22px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--mut); }
+  .idioma a{ color:var(--gold-soft); text-decoration:none; border-bottom:1px dashed rgba(230,206,133,.6); padding-bottom:1px; }
+  .idioma b{ color:var(--cream); font-weight:600; }
+  footer{ margin-top:30px; font-size:11.5px; color:rgba(169,188,163,.75); max-width:680px; line-height:1.6; border-top:1px solid rgba(201,162,75,.2); padding-top:16px; }
 </style></head><body>
   <h1 class="marca">Lotería&nbsp;Mexicana</h1>
-  <div class="sub">Sala física · demostración</div>
-  <p class="lead">Recorrido por una sala de casino con <b>300 terminales</b> jugando en vivo. La sala se enseña
+  <div class="sub" data-en="Gaming hall · demonstration">Sala física · demostración</div>
+  <p class="lead" data-en="A tour of a gaming hall with <b>300 terminals</b> playing live. The hall shows itself: it walks the room, sits at a terminal, inserts its card and plays a full round against the same draw that runs on the hall's screens.">Recorrido por una sala de casino con <b>300 terminales</b> jugando en vivo. La sala se enseña
   sola: recorre el local, se sienta en una terminal, pasa su tarjeta y juega una partida completa contra el mismo
   sorteo que corre en las pantallas.</p>
-  <a class="go" href="docs/pitch/generator/sala-3d.html">Entrar a la sala</a>
+  <a class="go" id="entrar" href="docs/pitch/generator/sala-3d.html" data-en="Enter the hall">Entrar a la sala</a>
   <div class="otras">
-    <a href="docs/pitch/generator/terminal.html">Terminal del jugador</a>
-    <a href="docs/pitch/generator/pantalla-central.html">Pantalla central</a>
-    <a href="docs/pitch/generator/pantalla-lateral.html?vista=baraja">Pantalla lateral · baraja</a>
-    <a href="docs/pitch/generator/pantalla-lateral.html?vista=pozo">Pantalla lateral · pozo</a>
+    <a href="docs/pitch/generator/terminal.html" data-en="Player terminal">Terminal del jugador</a>
+    <a href="docs/pitch/generator/pantalla-central.html" data-en="Main screen">Pantalla central</a>
+    <a href="docs/pitch/generator/pantalla-lateral.html?vista=baraja" data-en="Side screen · cards">Pantalla lateral · baraja</a>
+    <a href="docs/pitch/generator/pantalla-lateral.html?vista=pozo" data-en="Side screen · jackpot">Pantalla lateral · pozo</a>
   </div>
-  <p class="nota">Ábrelo en una <b>computadora</b> y déjalo correr: <b>no hay nada que tocar</b>. La primera carga
+  <p class="nota" data-en="Open it on a <b>computer</b> and let it run: <b>there is nothing to press</b>. The first load is about 14&nbsp;MB of textures and sound and takes a few seconds; keep it <b>on screen</b> while it loads.<br>Captions are in English. The game screens are in Spanish, as players will see them. If the computer struggles, the hall <b>lightens itself</b> until it runs smoothly.">Ábrelo en una <b>computadora</b> y déjalo correr: <b>no hay nada que tocar</b>. La primera carga
   baja unos 14&nbsp;MB de texturas y sonido y tarda unos segundos; déjala <b>a la vista</b> mientras carga.<br>
   Si el equipo va justo, la sala <b>se aligera sola</b> hasta que corra suave.</p>
-  <footer>Demostración técnica. Montos, ganadores, nombres y salas son ilustrativos y no corresponden a juego real.
+  <div class="idioma" id="idioma"><b>Español</b> · <a href="?lang=en">English</a></div>
+  <footer data-en="Technical demonstration. Amounts, winners, names and halls are illustrative and do not correspond to real play. No real-money wagering is offered here. Underage gambling is prohibited · 18+ · Play responsibly. Original Don Clemente Lotería artwork, used under license · Runo Networks S. de R.L. de C.V.">Demostración técnica. Montos, ganadores, nombres y salas son ilustrativos y no corresponden a juego real.
   Prohibido el juego a menores de edad · +18 · Juega con responsabilidad. Lotería Mexicana de Clemente Jaques ·
   Runo Networks S. de R.L. de C.V.</footer>
+<script>
+  (function () {
+    var q = new URLSearchParams(location.search).get('lang');
+    var en = q ? q.toLowerCase().slice(0, 2) === 'en' : /^en/i.test(navigator.language || '');
+    if (!en) return;
+    document.documentElement.lang = 'en';
+    document.title = 'Lotería Mexicana · Virtual gaming hall';
+    document.querySelectorAll('[data-en]').forEach(function (e) { e.innerHTML = e.getAttribute('data-en'); });
+    document.getElementById('entrar').href = 'docs/pitch/generator/sala-3d.html?lang=en';
+    document.getElementById('idioma').innerHTML = '<a href="?lang=es">Español</a> · <b>English</b>';
+  })();
+</script>
 </body></html>
